@@ -1,0 +1,96 @@
+let players = JSON.parse(localStorage.getItem('players') || '[]');
+
+// 在页面加载时显示已存储的球员
+document.addEventListener('DOMContentLoaded', function() {
+    updatePlayersList();
+});
+
+document.getElementById('playerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const player = {
+        name: document.getElementById('playerName').value,
+        position: document.getElementById('position').value,
+        skillLevel: parseInt(document.getElementById('skillLevel').value)
+    };
+    
+    players.push(player);
+    // 保存到 localStorage
+    localStorage.setItem('players', JSON.stringify(players));
+    updatePlayersList();
+    this.reset();
+});
+
+// 添加清空功能
+const clearButton = document.createElement('button');
+clearButton.textContent = '清空所有报名';
+clearButton.className = 'clear-btn';
+clearButton.onclick = function() {
+    if (confirm('确定要清空所有报名信息吗？')) {
+        players = [];
+        localStorage.removeItem('players');
+        updatePlayersList();
+        document.querySelector('#team1 ul').innerHTML = '';
+        document.querySelector('#team2 ul').innerHTML = '';
+    }
+};
+document.querySelector('.registered-players').appendChild(clearButton);
+
+function updatePlayersList() {
+    const playersList = document.getElementById('playersList');
+    playersList.innerHTML = '';
+    
+    players.forEach((player, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${player.name} - ${player.position} (技术等级: ${player.skillLevel})`;
+        playersList.appendChild(li);
+    });
+}
+
+document.getElementById('generateTeams').addEventListener('click', function() {
+    if (players.length < 2) {
+        alert('需要至少两名球员才能分队！');
+        return;
+    }
+    
+    // 按技术等级排序
+    players.sort((a, b) => b.skillLevel - a.skillLevel);
+    
+    const team1 = [];
+    const team2 = [];
+    let totalSkill1 = 0;
+    let totalSkill2 = 0;
+    
+    // 蛇形分配球员以保持实力平衡
+    players.forEach((player, index) => {
+        if (totalSkill1 <= totalSkill2) {
+            team1.push(player);
+            totalSkill1 += player.skillLevel;
+        } else {
+            team2.push(player);
+            totalSkill2 += player.skillLevel;
+        }
+    });
+    
+    displayTeams(team1, team2);
+});
+
+function displayTeams(team1, team2) {
+    const team1List = document.querySelector('#team1 ul');
+    const team2List = document.querySelector('#team2 ul');
+    
+    team1List.innerHTML = '';
+    team2List.innerHTML = '';
+    
+    team1.forEach(player => {
+        const li = document.createElement('li');
+        li.textContent = `${player.name} - ${player.position} (技术等级: ${player.skillLevel})`;
+        team1List.appendChild(li);
+    });
+    
+    team2.forEach(player => {
+        const li = document.createElement('li');
+        li.textContent = `${player.name} - ${player.position} (技术等级: ${player.skillLevel})`;
+        team2List.appendChild(li);
+    });
+}

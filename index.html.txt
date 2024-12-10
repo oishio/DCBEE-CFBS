@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>足球报名系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>足球报名系统</h1>
+        
+        <div class="description">
+            <p>欢迎使用足球报名系统！请填写以下信息进行报名：</p>
+            <ul>
+                <li>姓名：请填写您的真实姓名</li>
+                <li>位置：选择您最擅长的场上位置</li>
+                <li>技术等级：请按1-10评估自己的技术水平</li>
+            </ul>
+        </div>
+        
+        <div class="registration-form">
+            <h2>球员报名</h2>
+            <form id="playerForm">
+                <input type="text" id="playerName" placeholder="姓名" required>
+                <select id="position" required>
+                    <option value="">选择位置</option>
+                    <option value="forward">前锋</option>
+                    <option value="midfielder">中场</option>
+                    <option value="defender">后卫</option>
+                    <option value="goalkeeper">守门员</option>
+                </select>
+                <input type="number" id="skillLevel" placeholder="技术等级 (1-10)" min="1" max="10" required>
+                <button type="submit">报名</button>
+            </form>
+        </div>
+
+        <div class="registered-players">
+            <h2>已报名球员</h2>
+            <ul id="playersList"></ul>
+        </div>
+
+        <button id="generateTeams" class="generate-btn">自动分队</button>
+
+        <div class="teams">
+            <div class="team" id="team1">
+                <h3>队伍一</h3>
+                <ul></ul>
+            </div>
+            <div class="team" id="team2">
+                <h3>队伍二</h3>
+                <ul></ul>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
