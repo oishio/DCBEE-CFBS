@@ -436,7 +436,7 @@ document.getElementById('exportBtn').addEventListener('click', function() {
     
     // 修改表信息
     XLSX.utils.sheet_add_aoa(ws, [
-        [`DCBEE-CFBS足球报名表 (${trainingInfo.date})`],
+        [`DCBEE-CFBS足球报名   (${trainingInfo.date})`],
         [`训练时间：${trainingInfo.time}`],
         [`训练地点：${trainingInfo.address}`],
         ['']  // 空行
@@ -471,8 +471,7 @@ document.getElementById('positionFilter').addEventListener('change', function(e)
     filteredPlayers.forEach((player, index) => {
         const li = document.createElement('li');
         li.innerHTML = `
-            ${player.name} - 位置: ${player.positions.map(getPositionName).join(' > ')} 
-            (年龄: ${player.age}, 球龄: ${player.experience}年, 惯用脚: ${player.preferredFoot})
+            ${player.name}
             <button onclick="deletePlayer(${players.indexOf(player)})" class="delete-btn">删除</button>
         `;
         playersList.appendChild(li);
