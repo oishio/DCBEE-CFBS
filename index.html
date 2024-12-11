@@ -4,16 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="足球报名和自动组队系统">
-    <title>足球报名系统</title>
+    <title>DCBEE-CFBS足球报名系统</title>
     <link rel="stylesheet" href="styles.css">
     <meta name="force-deploy" content="2024">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>足球报名系统</h1>
+        <h1>DCBEE-CFBS足球报名系统</h1>
         
         <div class="description">
             <p>欢迎使用足球报名系统！请填写以下信息进行报名：</p>
+            <div class="schedule-info">
+                <h3>训练时间和地点：</h3>
+                <div class="date-select">
+                    <select id="trainingDate" required>
+                        <option value="">选择训练日期</option>
+                        <!-- 选项将由 JavaScript 动态生成 -->
+                    </select>
+                </div>
+                <div class="schedule-grid">
+                    <div class="schedule-item" id="wednesdaySession">
+                        <h4>周三晚场</h4>
+                        <p>时间：20:00 - 22:00</p>
+                        <p>地点：Franz-Liszt-Strasse 37, 38126, BS</p>
+                    </div>
+                    <div class="schedule-item" id="saturdaySession">
+                        <h4>周六傍晚场</h4>
+                        <p>时间：18:00 - 20:00</p>
+                        <p>地点：Beethovenstrasse 16, 38106, BS</p>
+                    </div>
+                </div>
+            </div>
             <ul>
                 <li>姓名：请填写您的真实姓名</li>
                 <li>位置：选择您最擅长的场上位置</li>
@@ -87,6 +110,7 @@
                 </div>
 
                 <input type="number" id="age" placeholder="年龄" min="15" max="60" required>
+                <input type="number" id="experience" placeholder="球龄（年）" min="0" max="40" required>
                 <select id="preferredFoot" required>
                     <option value="">惯用脚</option>
                     <option value="left">左脚</option>
@@ -113,6 +137,38 @@
             <div class="team" id="team2">
                 <h3>队伍二</h3>
                 <ul></ul>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <h2>球员统计</h2>
+            <div class="stats-container">
+                <div class="chart-container">
+                    <canvas id="positionChart"></canvas>
+                </div>
+                <div class="stats-controls">
+                    <button id="exportBtn" class="export-btn">导出报名表</button>
+                    <div class="filter-container">
+                        <select id="positionFilter">
+                            <option value="">全部位置</option>
+                            <optgroup label="5人制">
+                                <option value="striker">前锋(ST)</option>
+                                <option value="winger">边锋(LW/RW)</option>
+                                <option value="pivot">中锋(PV)</option>
+                                <option value="defender">后卫(DF)</option>
+                                <option value="goalkeeper">守门员(GK)</option>
+                            </optgroup>
+                            <optgroup label="6人制">
+                                <option value="striker6">前锋(ST)</option>
+                                <option value="winger6">边锋(LW/RW)</option>
+                                <option value="midfielder6">中场(MF)</option>
+                                <option value="defender6">后卫(DF)</option>
+                                <option value="sweeper6">清道夫(SW)</option>
+                                <option value="goalkeeper6">守门员(GK)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
