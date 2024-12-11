@@ -1,7 +1,7 @@
 // 添加 Google Sheets 配置
 const SHEET_ID = '1NP4kkseWwVYmyKqhnv5Wpx0GqmFcSVEBtVy8r9ZEH4Y';
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLJ3Mx5DhM8vVlKfdaZk0u42Tf993QI4AGgfsf2A4q759OFNIzuqswcCoeK38kkB-F/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWzsflv-tg7ImlS8XkmZxQPqb0ZAU8bxX9149SzovXdiif6aYEfvW4N3LXMw5fbYAp/exec';
 
 // 修改数据读取函数
 async function loadPlayers() {
