@@ -1,31 +1,24 @@
-// 添加 Google Sheets 配置
-const SHEET_ID = '1NP4kkseWwVYmyKqhnv5Wpx0GqmFcSVEBtVy8r9ZEH4Y';
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDiIPmD_JNFSRskqSVqJDFeZRpFh1ngX6CPF7TPX4o9jeVc59m41iZx8PAy2RKVrkc/exec';
+// Firebase 配置
+const firebaseConfig = {
+  apiKey: "AIzaSyDOClS6MuNGaaTOeL4NGdh1jThCeur20J8",
+  authDomain: "dcbee-cfbs.firebaseapp.com",
+  databaseURL: "https://dcbee-cfbs-default-rtdb.firebaseio.com",
+  projectId: "dcbee-cfbs",
+  storageBucket: "dcbee-cfbs.firebasestorage.app",
+  messagingSenderId: "571164317131",
+  appId: "1:571164317131:web:084f26c6a9eb8e2e4e524e",
+  measurementId: "G-XKWS0GJVPC"
+};
+
+// 初始化 Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
 
 // 修改数据读取函数
 async function loadPlayers() {
     try {
-        const response = await fetch(SHEET_URL);
-        const text = await response.text();
-        const data = JSON.parse(text.substr(47).slice(0, -2));
-        
-        // 跳过表头行，只处理实际的数据行
-        players = data.table.rows.slice(1).map(row => {
-            // 检查是否有有效数据
-            if (!row.c[0] || !row.c[0].v) return null;
-            
-            return {
-                name: row.c[0].v,
-                positions: (row.c[1] && row.c[1].v) ? row.c[1].v.split(',') : [],
-                age: (row.c[2] && row.c[2].v) ? parseInt(row.c[2].v) : 0,
-                experience: (row.c[3] && row.c[3].v) ? parseInt(row.c[3].v) : 0,
-                preferredFoot: (row.c[4] && row.c[4].v) ? row.c[4].v : '',
-                skillLevel: (row.c[5] && row.c[5].v) ? parseInt(row.c[5].v) : 0,
-                trainingDate: (row.c[6] && row.c[6].v) ? row.c[6].v : ''
-            };
-        }).filter(player => player !== null); // 过滤掉无效的数据
-        
+        const snapshot = await database.ref('players').once('value');
+        players = snapshot.val() || [];
         updatePlayersList();
     } catch (error) {
         console.error('Error loading data:', error);
@@ -35,25 +28,23 @@ async function loadPlayers() {
 // 修改数据保存函数
 async function savePlayers(player) {
     try {
-        // 发送到 Google Apps Script
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',  // 重要：使用 no-cors 模式
-            headers: {
-                'Content-Type': 'text/plain',  // 修改为 text/plain
-            },
-            body: JSON.stringify({
-                action: 'addPlayer',  // 添加动作标识
-                data: player
-            })
-        });
-
-        // 等待一秒，让数据同步
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const playersRef = database.ref('players');
+        const snapshot = await playersRef.once('value');
+        const currentPlayers = snapshot.val() || [];
         
-        // 重新加载数据
+        // 检查是否存在同名球员
+        const existingIndex = currentPlayers.findIndex(p => p.name === player.name);
+        
+        if (existingIndex !== -1) {
+            // 更新现有球员
+            currentPlayers[existingIndex] = player;
+        } else {
+            // 添加新球员
+            currentPlayers.push(player);
+        }
+        
+        await playersRef.set(currentPlayers);
         await loadPlayers();
-        
     } catch (error) {
         console.error('Error saving data:', error);
         alert('保存数据失败，请稍后重试！');
@@ -173,7 +164,7 @@ function isRegistrationOpen(trainingDate) {
     // 计算时间差（分钟）
     const timeDiff = (training - now) / (1000 * 60);
     
-    // 如果距离训练开始不到15分钟，返回false
+    // 如果距离训练开始不  15分钟，返回false
     return timeDiff > 15;
 }
 
@@ -251,7 +242,7 @@ function updatePlayersList() {
     // 更新图表
     updatePositionChart();
     
-    // 如果有足够的球员，自动重新分组
+    // 如果有足够的球员，自动重  分组
     if (players.length >= 5) {
         document.getElementById('generateTeams').click();
     } else {
@@ -327,7 +318,7 @@ document.getElementById('generateTeams').addEventListener('click', function() {
         totalSkill: 0
     }));
     
-    // 蛇形分配球员以保持实力平衡
+    // 形分配球员以保持实力平衡
     players.forEach(player => {
         // 找到当前总技术值最低的队伍
         let targetTeam = teams.reduce((min, team, index) => 
@@ -353,7 +344,7 @@ function displayTeams(teams) {
         teamDiv.className = 'team';
         teamDiv.innerHTML = `
             <h3>队伍 ${index + 1}</h3>
-            <p>队伍总  力: ${team.totalSkill}</p>
+            <p>队伍总力: ${team.totalSkill}</p>
             <ul></ul>
         `;
         
@@ -414,7 +405,7 @@ function updatePositionChart() {
     });
 }
 
-// 位置名称转换
+//    置名称转换
 function getPositionName(pos) {
     const positionNames = {
         'striker': '前锋(ST)',
@@ -560,7 +551,7 @@ function checkRegistrationStatus() {
 // 每分钟检查一次状态
 setInterval(checkRegistrationStatus, 60000);
 
-// 在选择日期时也检查状态
+//   选择日期时也检查状态
 document.getElementById('trainingDate').addEventListener('change', checkRegistrationStatus);
 
 // 添加定时刷新
