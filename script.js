@@ -338,28 +338,52 @@ document.getElementById('generateTeams').addEventListener('click', function() {
     // 按综合实力排序
     playersWithStrength.sort((a, b) => b.totalStrength - a.totalStrength);
     
-    // 创建两个队伍
-    const teams = [
-        { players: [], totalSkill: 0 },
-        { players: [], totalSkill: 0 }
-    ];
+    // 根据人数决定分组数量和处理方式
+    let numTeams;
+    let mainPlayers;
+    let substitutes = [];
+    
+    if (players.length <= 12) {
+        numTeams = 2;
+        mainPlayers = playersWithStrength;
+    } else if (players.length <= 18) {
+        numTeams = 3;
+        mainPlayers = playersWithStrength;
+    } else if (players.length <= 24) {
+        numTeams = 4;
+        mainPlayers = playersWithStrength;
+    } else {
+        numTeams = 4;
+        mainPlayers = playersWithStrength.slice(0, 24);
+        substitutes = playersWithStrength.slice(24);
+    }
+    
+    // 创建队伍
+    const teams = Array(numTeams).fill(null).map(() => ({
+        players: [],
+        totalSkill: 0
+    }));
     
     // 蛇形分配球员以保持实力平衡
-    playersWithStrength.forEach((player, index) => {
+    mainPlayers.forEach((player) => {
         // 找到当前总技术值最低的队伍
-        const targetTeamIndex = teams[0].totalSkill <= teams[1].totalSkill ? 0 : 1;
+        const targetTeamIndex = teams.reduce((minIndex, team, index) => 
+            team.totalSkill < teams[minIndex].totalSkill ? index : minIndex
+        , 0);
+        
         teams[targetTeamIndex].players.push(player);
         teams[targetTeamIndex].totalSkill += player.totalStrength;
     });
     
-    displayTeams(teams);
+    displayTeams(teams, substitutes);
 });
 
-// 修改队伍显示   数
-function displayTeams(teams) {
+// 修改队伍显示函数
+function displayTeams(teams, substitutes = []) {
     const teamsContainer = document.querySelector('.teams');
     teamsContainer.innerHTML = '';
     
+    // 显示主要队伍
     teams.forEach((team, index) => {
         const teamDiv = document.createElement('div');
         teamDiv.className = 'team';
@@ -380,6 +404,27 @@ function displayTeams(teams) {
         
         teamsContainer.appendChild(teamDiv);
     });
+    
+    // 如果有替补球员，显示替补席
+    if (substitutes.length > 0) {
+        const subsDiv = document.createElement('div');
+        subsDiv.className = 'team substitutes';
+        subsDiv.innerHTML = `
+            <h3>补位席</h3>
+            <ul></ul>
+        `;
+        
+        const ul = subsDiv.querySelector('ul');
+        substitutes.forEach(player => {
+            const li = document.createElement('li');
+            li.textContent = `${player.name} - 位置: ${player.positions.map(getPositionName).join(' > ')} 
+                (年龄: ${player.age}, 球龄: ${player.experience}年, 
+                惯用脚: ${player.preferredFoot}, 技术等级: ${player.skillLevel})`;
+            ul.appendChild(li);
+        });
+        
+        teamsContainer.appendChild(subsDiv);
+    }
 }
 
 // 位置统计图表

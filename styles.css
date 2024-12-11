@@ -305,3 +305,18 @@ form input[type="number"] {
     outline: none;
     border-color: #4CAF50;
 } 
+
+/* 添加补位席样式 */
+.team.substitutes {
+    background-color: #f8f9fa;
+    border: 2px dashed #dc3545;
+    margin-top: 20px;
+}
+
+.team.substitutes h3 {
+    color: #dc3545;
+}
+
+.team.substitutes ul li {
+    border-bottom: 1px dashed #dc3545;
+} 
