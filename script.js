@@ -96,8 +96,39 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// 添加时间检查函数
+function isRegistrationOpen(trainingDate) {
+    const now = new Date();
+    const training = new Date(trainingDate);
+    
+    // 获取训练时间
+    const isWednesday = training.getDay() === 3;
+    const trainingHour = isWednesday ? 20 : 18; // 周三20点，周六18点
+    
+    // 设置训练开始时间
+    training.setHours(trainingHour, 0, 0, 0);
+    
+    // 计算时间差（分钟）
+    const timeDiff = (training - now) / (1000 * 60);
+    
+    // 如果距离训练开始不到15分钟，返回false
+    return timeDiff > 15;
+}
+
+// 修改表单提交事件
 document.getElementById('playerForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    
+    const selectedDate = document.getElementById('trainingDate').value;
+    if (!selectedDate) {
+        alert('请选择训练日期！');
+        return;
+    }
+    
+    if (!isRegistrationOpen(selectedDate)) {
+        alert('距离训练开始不到15分钟，报名已关闭！');
+        return;
+    }
     
     const player = {
         name: document.getElementById('playerName').value,
@@ -134,12 +165,21 @@ const clearButton = document.createElement('button');
 clearButton.textContent = '清空所有报名';
 clearButton.className = 'clear-btn';
 clearButton.onclick = function() {
+    const selectedDate = document.getElementById('trainingDate').value;
+    if (!selectedDate) {
+        alert('请先选择训练日期！');
+        return;
+    }
+    
+    if (!isRegistrationOpen(selectedDate)) {
+        alert('距离训练开始不到15分钟，无法修改报名信息！');
+        return;
+    }
+    
     if (confirm('确定要清空所有报名信息吗？')) {
         players = [];
         localStorage.removeItem('players');
         updatePlayersList();
-        document.querySelector('#team1 ul').innerHTML = '';
-        document.querySelector('#team2 ul').innerHTML = '';
     }
 };
 document.querySelector('.registered-players').appendChild(clearButton);
@@ -160,9 +200,39 @@ function updatePlayersList() {
     
     // 更新图表
     updatePositionChart();
+    
+    // 如果有足够的球员，自动重新分组
+    if (players.length >= 5) {
+        document.getElementById('generateTeams').click();
+    } else {
+        // 清空队伍显示
+        const teamsContainer = document.querySelector('.teams');
+        teamsContainer.innerHTML = `
+            <div class="team" id="team1">
+                <h3>队伍一</h3>
+                <ul></ul>
+            </div>
+            <div class="team" id="team2">
+                <h3>队伍二</h3>
+                <ul></ul>
+            </div>
+        `;
+    }
 }
 
+// 修改删除球员函数
 function deletePlayer(index) {
+    const selectedDate = document.getElementById('trainingDate').value;
+    if (!selectedDate) {
+        alert('请先选择训练日期！');
+        return;
+    }
+    
+    if (!isRegistrationOpen(selectedDate)) {
+        alert('距离训练开始不到15分钟，无法修改报名信息！');
+        return;
+    }
+    
     if (confirm('确定要删除这名球员吗？')) {
         players.splice(index, 1);
         localStorage.setItem('players', JSON.stringify(players));
@@ -171,6 +241,17 @@ function deletePlayer(index) {
 }
 
 document.getElementById('generateTeams').addEventListener('click', function() {
+    const selectedDate = document.getElementById('trainingDate').value;
+    if (!selectedDate) {
+        alert('请先选择训练日期！');
+        return;
+    }
+    
+    if (!isRegistrationOpen(selectedDate)) {
+        alert('分组已锁定，无法修改！');
+        return;
+    }
+    
     if (players.length < 5) {
         alert('需要至少5名球员才能分队！');
         return;
@@ -288,7 +369,7 @@ function getPositionName(pos) {
     const positionNames = {
         'striker': '前锋(ST)',
         'winger': '边锋(LW/RW)',
-        'pivot': '中锋(PV)',
+        'pivot': '中场(MF)',
         'defender': '后卫(DF)',
         'goalkeeper': '守门员(GK)',
         'striker6': '前锋(ST)',
@@ -402,4 +483,32 @@ document.getElementById('trainingDate').addEventListener('change', function() {
             item.classList.add('active-session');
         }
     });
-}); 
+});
+
+// 添加定时检查
+function checkRegistrationStatus() {
+    const selectedDate = document.getElementById('trainingDate').value;
+    if (selectedDate && !isRegistrationOpen(selectedDate)) {
+        document.getElementById('playerForm').querySelectorAll('input, select, button').forEach(el => {
+            el.disabled = true;
+        });
+        document.querySelectorAll('.delete-btn, .clear-btn').forEach(btn => {
+            btn.disabled = true;
+        });
+        document.getElementById('generateTeams').disabled = true;
+    } else {
+        document.getElementById('playerForm').querySelectorAll('input, select, button').forEach(el => {
+            el.disabled = false;
+        });
+        document.querySelectorAll('.delete-btn, .clear-btn').forEach(btn => {
+            btn.disabled = false;
+        });
+        document.getElementById('generateTeams').disabled = false;
+    }
+}
+
+// 每分钟检查一次状态
+setInterval(checkRegistrationStatus, 60000);
+
+// 在选择日期时也检查状态
+document.getElementById('trainingDate').addEventListener('change', checkRegistrationStatus); 
