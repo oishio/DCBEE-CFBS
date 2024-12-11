@@ -327,9 +327,7 @@ function displayTeams(teams, substitutes = []) {
         const ul = teamDiv.querySelector('ul');
         team.players.forEach(player => {
             const li = document.createElement('li');
-            li.textContent = `${player.name} - 位置: ${player.positions.map(getPositionName).join(' > ')} 
-                (年龄: ${player.age}, 球龄: ${player.experience}年, 
-                惯用脚: ${player.preferredFoot}, 技术等级: ${player.skillLevel})`;
+            li.textContent = `${player.name} - ${player.positions.map(getPositionName).join('/')}`;
             ul.appendChild(li);
         });
         
@@ -348,9 +346,7 @@ function displayTeams(teams, substitutes = []) {
         const ul = subsDiv.querySelector('ul');
         substitutes.forEach(player => {
             const li = document.createElement('li');
-            li.textContent = `${player.name} - 位置: ${player.positions.map(getPositionName).join(' > ')} 
-                (年龄: ${player.age}, 球龄: ${player.experience}年, 
-                惯用脚: ${player.preferredFoot}, 技术等级: ${player.skillLevel})`;
+            li.textContent = `${player.name} - ${player.positions.map(getPositionName).join('/')}`;
             ul.appendChild(li);
         });
         
@@ -549,7 +545,7 @@ document.getElementById('trainingDate').addEventListener('change', async functio
     
     // 如果有足够的球员，自动分组（不需要点击按钮）
     if (players.length >= 5) {
-        generateTeams();  // 直接调用分组函   
+        generateTeams();  // 直接调用分组函数
     } else {
         // 清空队伍显示
         const teamsContainer = document.querySelector('.teams');
@@ -587,3 +583,29 @@ document.getElementById('trainingDate').addEventListener('change', checkRegistra
 
 // 添加定时刷新
 setInterval(loadPlayers, 30000); // 每30秒刷新一次 
+
+// 修改球员列表显示函数
+function updatePlayersList() {
+    const playersList = document.getElementById('playersList');
+    playersList.innerHTML = '';
+    
+    players.forEach((player, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            ${player.name}
+            <button onclick="deletePlayer(${index})" class="delete-btn">删除</button>
+        `;
+        playersList.appendChild(li);
+    });
+    
+    // 更新图表
+    updatePositionChart();
+    
+    // 如果有足够的球员，自动分组
+    if (players.length >= 5) {
+        generateTeams();
+    } else {
+        const teamsContainer = document.querySelector('.teams');
+        teamsContainer.innerHTML = '';
+    }
+}
