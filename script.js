@@ -1,7 +1,7 @@
 // 添加 Google Sheets 配置
 const SHEET_ID = '1NP4kkseWwVYmyKqhnv5Wpx0GqmFcSVEBtVy8r9ZEH4Y';
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1LqZ77x7gruOf6dV2cUOHeP9ui4N3yr1VZZCwM1oVKZYQ99jBZKj1dHP6B9ytsU2L/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGrqbR1f4E4ObwYAkJphEMzeooe7g0OKzQHEBE9GP7gEEvnxBVl9cpwyBgPMUsSmdN/exec';
 
 // 修改数据读取函数
 async function loadPlayers() {
@@ -48,8 +48,10 @@ async function savePlayers(player) {
             })
         });
 
-        // 由于使用 no-cors，我们不能检查 response.ok
-        // 直接重新加载数据
+        // 等待一秒，让数据同步
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 重新加载数据
         await loadPlayers();
         
     } catch (error) {
@@ -147,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const trainingInfo = getTrainingInfo();
     
-    // 更新   示的时间和地点
+    // 更新显示的时间和地点
     document.querySelectorAll('.schedule-item').forEach(item => {
         const dayText = item.querySelector('h4').textContent;
         if (dayText.includes(trainingInfo.day)) {
@@ -312,7 +314,7 @@ document.getElementById('generateTeams').addEventListener('click', function() {
         player.totalStrength = player.skillLevel + experienceBonus;
     });
     
-    // 按综合实力排序
+    // 按合实力排序
     players.sort((a, b) => b.totalStrength - a.totalStrength);
     
     // 计算需要的队伍数量（每队5-6人）
@@ -493,7 +495,7 @@ document.getElementById('positionFilter').addEventListener('change', function(e)
     });
 });
 
-// 修改生成训练日期选项的函数
+// 修改   成训练日期选项的函数
 function generateTrainingDates() {
     const select = document.getElementById('trainingDate');
     const dates = [
@@ -562,4 +564,4 @@ setInterval(checkRegistrationStatus, 60000);
 document.getElementById('trainingDate').addEventListener('change', checkRegistrationStatus);
 
 // 添加定时刷新
-setInterval(loadPlayers, 30000); // 每30秒   新一次 
+setInterval(loadPlayers, 30000); // 每30秒刷新一次 
