@@ -1,3 +1,50 @@
+// 添加 Google Sheets 配置
+const SHEET_ID = '1NP4kkseWwVYmyKqhnv5Wpx0GqmFcSVEBtVy8r9ZEH4Y';
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLJ3Mx5DhM8vVlKfdaZk0u42Tf993QI4AGgfsf2A4q759OFNIzuqswcCoeK38kkB-F/exec';
+
+// 修改数据读取函数
+async function loadPlayers() {
+    try {
+        const response = await fetch(SHEET_URL);
+        const text = await response.text();
+        const data = JSON.parse(text.substr(47).slice(0, -2));
+        
+        players = data.table.rows.map(row => ({
+            name: row.c[0].v,
+            positions: row.c[1].v.split(','),
+            age: row.c[2].v,
+            experience: row.c[3].v,
+            preferredFoot: row.c[4].v,
+            skillLevel: row.c[5].v,
+            trainingDate: row.c[6].v
+        }));
+        
+        updatePlayersList();
+    } catch (error) {
+        console.error('Error loading data:', error);
+    }
+}
+
+// 修改数据保存函数
+async function savePlayers(player) {
+    // 使用 Google Apps Script Web App URL
+    const SCRIPT_URL = '你的Google Apps Script Web App URL';
+    
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(player)
+        });
+        
+        if (response.ok) {
+            await loadPlayers(); // 重新加载数据
+        }
+    } catch (error) {
+        console.error('Error saving data:', error);
+    }
+}
+
 function getDefaultTrainingInfo() {
     const now = new Date();
     const day = now.getDay(); // 0是周日，2是周二，3是周三，5是周五，6是周六
@@ -67,7 +114,7 @@ let players = JSON.parse(localStorage.getItem('players') || '[]');
 // 在页面加载时显示已存储的球员
 document.addEventListener('DOMContentLoaded', function() {
     generateTrainingDates();
-    updatePlayersList();
+    loadPlayers();
     
     // 添加姓名输入事件监听
     document.getElementById('playerName').addEventListener('input', function(e) {
@@ -116,7 +163,7 @@ function isRegistrationOpen(trainingDate) {
 }
 
 // 修改表单提交事件
-document.getElementById('playerForm').addEventListener('submit', function(e) {
+document.getElementById('playerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const selectedDate = document.getElementById('trainingDate').value;
@@ -140,23 +187,11 @@ document.getElementById('playerForm').addEventListener('submit', function(e) {
         age: parseInt(document.getElementById('age').value),
         experience: parseInt(document.getElementById('experience').value),
         preferredFoot: document.getElementById('preferredFoot').value,
-        skillLevel: parseInt(document.getElementById('skillLevel').value)
+        skillLevel: parseInt(document.getElementById('skillLevel').value),
+        trainingDate: document.getElementById('trainingDate').value
     };
     
-    // 检查是否存在同名球员
-    const existingIndex = players.findIndex(p => p.name === player.name);
-    if (existingIndex !== -1) {
-        if (confirm('已存在同名球员，是否更新信息？')) {
-            players[existingIndex] = player;
-        } else {
-            return; // 取消提交
-        }
-    } else {
-        players.push(player);
-    }
-    
-    localStorage.setItem('players', JSON.stringify(players));
-    updatePlayersList();
+    await savePlayers(player);
     this.reset();
 });
 
@@ -461,7 +496,7 @@ function generateTrainingDates() {
     dates.forEach(({ date, day }) => {
         const currentDate = new Date(date);
         const dateStr = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月${currentDate.getDate()}日`;
-        const timeStr = day === '周三' ? '20:00-22:00' : '18:00-20:00';
+        const timeStr = day === '周  ' ? '20:00-22:00' : '18:00-20:00';
         const addressStr = day === '周三' ? 
             'Franz-Liszt-Strasse 37, 38126, BS' : 
             'Beethovenstrasse 16, 38106, BS';
@@ -511,4 +546,7 @@ function checkRegistrationStatus() {
 setInterval(checkRegistrationStatus, 60000);
 
 // 在选择日期时也检查状态
-document.getElementById('trainingDate').addEventListener('change', checkRegistrationStatus); 
+document.getElementById('trainingDate').addEventListener('change', checkRegistrationStatus);
+
+// 添加定时刷新
+setInterval(loadPlayers, 30000); // 每30秒刷新一次 
