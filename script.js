@@ -230,76 +230,6 @@ document.getElementById('playerForm').addEventListener('submit', async function(
     this.reset();
 });
 
-// 添加清空功能
-const clearButton = document.createElement('button');
-clearButton.textContent = '清空所有报名';
-clearButton.className = 'clear-btn';
-clearButton.onclick = async function() {
-    const selectedDate = document.getElementById('trainingDate').value;
-    if (!selectedDate) {
-        alert('请先选择训练日期！');
-        return;
-    }
-    
-    if (!isRegistrationOpen(selectedDate)) {
-        alert('距离训练开始不到15分钟，无法修改报名信息！');
-        return;
-    }
-    
-    if (confirm('确定要清空所有报名信息吗？')) {
-        const dateStr = new Date(selectedDate).toDateString();
-        const playersRef = database.ref('players');
-        const snapshot = await playersRef.once('value');
-        const allPlayers = snapshot.val() || {};
-        
-        // 删除当前日期的所有球员
-        for (let key in allPlayers) {
-            if (key.startsWith(dateStr)) {
-                await playersRef.child(key).remove();
-            }
-        }
-        
-        await loadPlayers();
-    }
-};
-document.querySelector('.registered-players').appendChild(clearButton);
-
-function updatePlayersList() {
-    const playersList = document.getElementById('playersList');
-    playersList.innerHTML = '';
-    
-    players.forEach((player, index) => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-            ${player.name} - 位置: ${player.positions.map(getPositionName).join(' > ')} 
-            (年龄: ${player.age}, 球龄: ${player.experience}年, 惯用脚: ${player.preferredFoot})
-            <button onclick="deletePlayer(${index})" class="delete-btn">删除</button>
-        `;
-        playersList.appendChild(li);
-    });
-    
-    // 更新图表
-    updatePositionChart();
-    
-    // 如果有足够的球员，自动重新分组
-    if (players.length >= 5) {
-        document.getElementById('generateTeams').click();
-    } else {
-        // 清空队伍显示
-        const teamsContainer = document.querySelector('.teams');
-        teamsContainer.innerHTML = `
-            <div class="team" id="team1">
-                <h3>队伍一</h3>
-                <ul></ul>
-            </div>
-            <div class="team" id="team2">
-                <h3>队伍二</h3>
-                <ul></ul>
-            </div>
-        `;
-    }
-}
-
 // 修改删除球员函数
 async function deletePlayer(index) {
     const selectedDate = document.getElementById('trainingDate').value;
@@ -322,10 +252,11 @@ async function deletePlayer(index) {
     }
 }
 
-// 修改自动分组功能
-document.getElementById('generateTeams').addEventListener('click', function() {
+// 修改自动分组功能为独立函数
+function generateTeams() {
     if (players.length < 5) {
-        alert('至少需要5名球员才能分组！');
+        const teamsContainer = document.querySelector('.teams');
+        teamsContainer.innerHTML = '<div class="team"><h3>至少需要5名球员才能分组！</h3></div>';
         return;
     }
     
@@ -376,7 +307,7 @@ document.getElementById('generateTeams').addEventListener('click', function() {
     });
     
     displayTeams(teams, substitutes);
-});
+}
 
 // 修改队伍显示函数
 function displayTeams(teams, substitutes = []) {
@@ -471,7 +402,7 @@ function updatePositionChart() {
     });
 }
 
-// 位置名称转换
+// 位置名转换
 function getPositionName(pos) {
     const positionNames = {
         'striker': '前锋(ST)',
@@ -616,22 +547,13 @@ document.getElementById('trainingDate').addEventListener('change', async functio
     // 检查报名状态
     checkRegistrationStatus();
     
-    // 如果有足够的球员，自动分组
+    // 如果有足够的球员，自动分组（不需要点击按钮）
     if (players.length >= 5) {
-        document.getElementById('generateTeams').click();
+        generateTeams();  // 直接调用分组函   
     } else {
         // 清空队伍显示
         const teamsContainer = document.querySelector('.teams');
-        teamsContainer.innerHTML = `
-            <div class="team" id="team1">
-                <h3>队伍一</h3>
-                <ul></ul>
-            </div>
-            <div class="team" id="team2">
-                <h3>队伍二</h3>
-                <ul></ul>
-            </div>
-        `;
+        teamsContainer.innerHTML = '';
     }
 });
 
