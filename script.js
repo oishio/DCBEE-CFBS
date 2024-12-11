@@ -1,7 +1,7 @@
 // 添加 Google Sheets 配置
 const SHEET_ID = '1NP4kkseWwVYmyKqhnv5Wpx0GqmFcSVEBtVy8r9ZEH4Y';
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGrqbR1f4E4ObwYAkJphEMzeooe7g0OKzQHEBE9GP7gEEvnxBVl9cpwyBgPMUsSmdN/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDiIPmD_JNFSRskqSVqJDFeZRpFh1ngX6CPF7TPX4o9jeVc59m41iZx8PAy2RKVrkc/exec';
 
 // 修改数据读取函数
 async function loadPlayers() {
@@ -353,7 +353,7 @@ function displayTeams(teams) {
         teamDiv.className = 'team';
         teamDiv.innerHTML = `
             <h3>队伍 ${index + 1}</h3>
-            <p>队伍总实力: ${team.totalSkill}</p>
+            <p>队伍总  力: ${team.totalSkill}</p>
             <ul></ul>
         `;
         
@@ -495,7 +495,7 @@ document.getElementById('positionFilter').addEventListener('change', function(e)
     });
 });
 
-// 修改   成训练日期选项的函数
+// 修改成训练日期选项的函数
 function generateTrainingDates() {
     const select = document.getElementById('trainingDate');
     const dates = [
