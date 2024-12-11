@@ -34,20 +34,42 @@ async function loadPlayers() {
 
 // 修改数据保存函数
 async function savePlayers(player) {
-    // 使用 Google Apps Script Web App URL
-    const SCRIPT_URL = '你的Google Apps Script Web App URL';
-    
     try {
-        const response = await fetch(SCRIPT_URL, {
+        // 先获取当前所有球员
+        const response = await fetch(SHEET_URL);
+        const text = await response.text();
+        const data = JSON.parse(text.substr(47).slice(0, -2));
+        
+        // 检查是否存在同名球员
+        const existingPlayerIndex = data.table.rows.findIndex(row => 
+            row.c[0] && row.c[0].v === player.name
+        );
+        
+        if (existingPlayerIndex !== -1) {
+            if (!confirm('已存在同名球员，是否更新信息？')) {
+                return; // 用户取消更新
+            }
+        }
+        
+        // 发送到 Google Apps Script
+        const saveResponse = await fetch(SCRIPT_URL, {
             method: 'POST',
-            body: JSON.stringify(player)
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ...player,
+                isUpdate: existingPlayerIndex !== -1
+            })
         });
         
-        if (response.ok) {
+        if (saveResponse.ok || saveResponse.type === 'opaque') {
             await loadPlayers(); // 重新加载数据
         }
     } catch (error) {
         console.error('Error saving data:', error);
+        alert('保存数据失败，请稍后重试！');
     }
 }
 
@@ -154,11 +176,11 @@ function isRegistrationOpen(trainingDate) {
     const now = new Date();
     const training = new Date(trainingDate);
     
-    // 获取训练时间
+    // 获取   练时间
     const isWednesday = training.getDay() === 3;
     const trainingHour = isWednesday ? 20 : 18; // 周三20点，周六18点
     
-    // 设置训练开始时间
+    // 设置训练开始时
     training.setHours(trainingHour, 0, 0, 0);
     
     // 计算时间差（分钟）
@@ -261,7 +283,7 @@ function updatePlayersList() {
     }
 }
 
-// 修改删除   员函数
+// 修改删除球员函数
 function deletePlayer(index) {
     const selectedDate = document.getElementById('trainingDate').value;
     if (!selectedDate) {
@@ -449,7 +471,7 @@ document.getElementById('exportBtn').addEventListener('click', function() {
         ['']  // 空行
     ], { origin: 'A1' });
     
-    // 调整列宽
+    // 调整  宽
     ws['!cols'] = [
         { wch: 15 }, // 姓名
         { wch: 15 }, // 首选位置
