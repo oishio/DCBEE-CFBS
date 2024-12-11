@@ -35,38 +35,23 @@ async function loadPlayers() {
 // 修改数据保存函数
 async function savePlayers(player) {
     try {
-        // 先获取当前所有球员
-        const response = await fetch(SHEET_URL);
-        const text = await response.text();
-        const data = JSON.parse(text.substr(47).slice(0, -2));
-        
-        // 检查是否存在同名球员
-        const existingPlayerIndex = data.table.rows.findIndex(row => 
-            row.c[0] && row.c[0].v === player.name
-        );
-        
-        if (existingPlayerIndex !== -1) {
-            if (!confirm('已存在同名球员，是否更新信息？')) {
-                return; // 用户取消更新
-            }
-        }
-        
         // 发送到 Google Apps Script
-        const saveResponse = await fetch(SCRIPT_URL, {
+        const response = await fetch(SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors',
+            mode: 'no-cors',  // 重要：使用 no-cors 模式
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'text/plain',  // 修改为 text/plain
             },
             body: JSON.stringify({
-                ...player,
-                isUpdate: existingPlayerIndex !== -1
+                action: 'addPlayer',  // 添加动作标识
+                data: player
             })
         });
+
+        // 由于使用 no-cors，我们不能检查 response.ok
+        // 直接重新加载数据
+        await loadPlayers();
         
-        if (saveResponse.ok || saveResponse.type === 'opaque') {
-            await loadPlayers(); // 重新加载数据
-        }
     } catch (error) {
         console.error('Error saving data:', error);
         alert('保存数据失败，请稍后重试！');
@@ -176,7 +161,7 @@ function isRegistrationOpen(trainingDate) {
     const now = new Date();
     const training = new Date(trainingDate);
     
-    // 获取   练时间
+    // 获取训练时间
     const isWednesday = training.getDay() === 3;
     const trainingHour = isWednesday ? 20 : 18; // 周三20点，周六18点
     
@@ -471,7 +456,7 @@ document.getElementById('exportBtn').addEventListener('click', function() {
         ['']  // 空行
     ], { origin: 'A1' });
     
-    // 调整  宽
+    // 调整列宽
     ws['!cols'] = [
         { wch: 15 }, // 姓名
         { wch: 15 }, // 首选位置
