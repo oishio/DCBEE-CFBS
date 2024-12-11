@@ -1,7 +1,7 @@
 // 添加 Google Sheets 配置
 const SHEET_ID = '1NP4kkseWwVYmyKqhnv5Wpx0GqmFcSVEBtVy8r9ZEH4Y';
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWzsflv-tg7ImlS8XkmZxQPqb0ZAU8bxX9149SzovXdiif6aYEfvW4N3LXMw5fbYAp/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1LqZ77x7gruOf6dV2cUOHeP9ui4N3yr1VZZCwM1oVKZYQ99jBZKj1dHP6B9ytsU2L/exec';
 
 // 修改数据读取函数
 async function loadPlayers() {
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const trainingInfo = getTrainingInfo();
     
-    // 更新显示的时间和地点
+    // 更新   示的时间和地点
     document.querySelectorAll('.schedule-item').forEach(item => {
         const dayText = item.querySelector('h4').textContent;
         if (dayText.includes(trainingInfo.day)) {
@@ -562,4 +562,4 @@ setInterval(checkRegistrationStatus, 60000);
 document.getElementById('trainingDate').addEventListener('change', checkRegistrationStatus);
 
 // 添加定时刷新
-setInterval(loadPlayers, 30000); // 每30秒刷新一次 
+setInterval(loadPlayers, 30000); // 每30秒   新一次 
