@@ -1,0 +1,173 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    padding: 20px;
+    background-color: #f4f4f4;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.registration-form {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+input, select, button {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #45a049;
+}
+
+.registered-players, .teams {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.generate-btn {
+    display: block;
+    width: 100%;
+    margin: 20px 0;
+    padding: 15px;
+    font-size: 16px;
+}
+
+.team {
+    margin-bottom: 20px;
+}
+
+ul {
+    list-style: none;
+    padding: 10px;
+}
+
+li {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.delete-btn {
+    background: #ff4444;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.delete-btn:hover {
+    background: #cc0000;
+}
+
+form input[type="tel"],
+form input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+    }
+    
+    form input, form select {
+        font-size: 16px;
+    }
+} 
+
+.teams {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+.team {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.team h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.team p {
+    color: #666;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+} 
+
+.positions-container {
+    margin-bottom: 15px;
+}
+
+.positions-container label {
+    display: block;
+    margin-bottom: 5px;
+    color: #666;
+}
+
+.position-select {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.position-select select {
+    flex: 1;
+    min-width: 150px;
+}
+
+@media (max-width: 600px) {
+    .position-select {
+        flex-direction: column;
+    }
+    
+    .position-select select {
+        width: 100%;
+    }
+} 
