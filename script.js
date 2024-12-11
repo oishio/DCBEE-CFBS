@@ -10,15 +10,21 @@ async function loadPlayers() {
         const text = await response.text();
         const data = JSON.parse(text.substr(47).slice(0, -2));
         
-        players = data.table.rows.map(row => ({
-            name: row.c[0].v,
-            positions: row.c[1].v.split(','),
-            age: row.c[2].v,
-            experience: row.c[3].v,
-            preferredFoot: row.c[4].v,
-            skillLevel: row.c[5].v,
-            trainingDate: row.c[6].v
-        }));
+        // 跳过表头行，只处理实际的数据行
+        players = data.table.rows.slice(1).map(row => {
+            // 检查是否有有效数据
+            if (!row.c[0] || !row.c[0].v) return null;
+            
+            return {
+                name: row.c[0].v,
+                positions: (row.c[1] && row.c[1].v) ? row.c[1].v.split(',') : [],
+                age: (row.c[2] && row.c[2].v) ? parseInt(row.c[2].v) : 0,
+                experience: (row.c[3] && row.c[3].v) ? parseInt(row.c[3].v) : 0,
+                preferredFoot: (row.c[4] && row.c[4].v) ? row.c[4].v : '',
+                skillLevel: (row.c[5] && row.c[5].v) ? parseInt(row.c[5].v) : 0,
+                trainingDate: (row.c[6] && row.c[6].v) ? row.c[6].v : ''
+            };
+        }).filter(player => player !== null); // 过滤掉无效的数据
         
         updatePlayersList();
     } catch (error) {
@@ -255,7 +261,7 @@ function updatePlayersList() {
     }
 }
 
-// 修改删除球员函数
+// 修改删除   员函数
 function deletePlayer(index) {
     const selectedDate = document.getElementById('trainingDate').value;
     if (!selectedDate) {
@@ -496,7 +502,7 @@ function generateTrainingDates() {
     dates.forEach(({ date, day }) => {
         const currentDate = new Date(date);
         const dateStr = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月${currentDate.getDate()}日`;
-        const timeStr = day === '周  ' ? '20:00-22:00' : '18:00-20:00';
+        const timeStr = day === '周三' ? '20:00-22:00' : '18:00-20:00';
         const addressStr = day === '周三' ? 
             'Franz-Liszt-Strasse 37, 38126, BS' : 
             'Beethovenstrasse 16, 38106, BS';
