@@ -201,6 +201,13 @@ function getPinyinName(chineseName) {
     try {
         if (!chineseName) return '';
         
+        // 检查是否包含中文字符
+        const hasChinese = /[\u4e00-\u9fa5]/.test(chineseName);
+        if (!hasChinese) {
+            // 如果不包含中文，直接返回原名
+            return chineseName;
+        }
+        
         // 使用 pinyin-pro 库生成拼音
         const pinyinArray = pinyinPro.pinyin(chineseName, {
             toneType: 'none',    // 不带声调
@@ -208,12 +215,16 @@ function getPinyinName(chineseName) {
             capitalize: true     // 首字母大写
         });
         
-        // 获取姓和名
+        // 姓氏总是第一个字
         const surname = pinyinArray[0];
-        const givenName = pinyinArray.slice(1).join(' ');
         
-        // 返回 "名 姓" 格式
-        return `${givenName} ${surname}`;
+        // 名字是剩余的所有字连在一起
+        const givenName = pinyinArray.slice(1)
+            .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+            .join('');
+        
+        // 返回 "名字 姓氏" 格式
+        return givenName + ' ' + surname.charAt(0).toUpperCase() + surname.slice(1).toLowerCase();
     } catch (error) {
         console.error('生成拼音失败:', error);
         return chineseName;  // 如果转换失败，返回原名
@@ -421,7 +432,7 @@ function checkRegistrationStatus() {
     const trainingDate = new Date(selectedDate);
     const now = new Date();
     
-    // 获取训练时间
+    // 获训练时间
     const isWednesday = trainingDate.getDay() === 3;
     const trainingHour = isWednesday ? 20 : 18; // 周三20点，周六18点
     
@@ -702,4 +713,100 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         console.error('Error submitting form:', error);
         alert(translations.signUpFailed.zh + '\n' + translations.signUpFailed.de);
     }
+});
+
+// PDF导出功能
+async function exportToPDF(date) {
+    try {
+        // 获取选中日期的球员数据
+        const historySnapshot = await database.ref('signUpHistory').once('value');
+        const historyData = historySnapshot.val() || {};
+        
+        // 过滤出选中日期的球员
+        const players = Object.values(historyData).filter(player => 
+            player.trainingDate === date
+        );
+        
+        if (players.length === 0) {
+            alert('No registration records found for this date!');
+            return;
+        }
+        
+        // 创建PDF文档
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4', true);
+        
+        // 使用默认字体
+        doc.setFont('helvetica');
+        
+        // 设置标题
+        const trainingDate = new Date(date);
+        const dateStr = `${trainingDate.getFullYear()}-${(trainingDate.getMonth() + 1).toString().padStart(2, '0')}-${trainingDate.getDate().toString().padStart(2, '0')}`;
+        doc.setFontSize(16);
+        doc.text(`Training Registration - ${dateStr}`, 20, 20);
+        
+        // 准备表格数据
+        const tableData = await Promise.all(players.map(async (player, index) => {
+            // 获取出场率
+            const { attendanceRate } = await getPlayerLastRecord(player.name || player.playerName);
+            return [
+                index + 1,  // 添加序号
+                getPinyinName(player.name || player.playerName),  // 只显示拼音名字
+                attendanceRate + '%',  // 显示出场率
+                player.skillLevel,
+                player.age,
+                player.experience,
+                ''  // 空的签名列
+            ];
+        }));
+        
+        // 设置表头
+        const headers = [
+            ['No.', 'Name', 'Attendance', 'Level', 'Age', 'Exp.', 'Signature']
+        ];
+        
+        // 生成表格
+        doc.autoTable({
+            head: headers,
+            body: tableData,
+            startY: 30,
+            styles: {
+                font: 'helvetica',
+                fontSize: 8
+            },
+            headStyles: {
+                fillColor: [76, 175, 80],
+                textColor: 255
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245]
+            },
+            columnStyles: {
+                0: {cellWidth: 15},  // No.
+                1: {cellWidth: 45},  // Name
+                2: {cellWidth: 25},  // Attendance
+                3: {cellWidth: 20},  // Level
+                4: {cellWidth: 20},  // Age
+                5: {cellWidth: 20},  // Experience
+                6: {cellWidth: 30}   // Signature
+            }
+        });
+        
+        // 保存PDF
+        doc.save(`Training_Registration_${dateStr}.pdf`);
+    } catch (error) {
+        console.error('Export PDF failed:', error);
+        console.error(error.stack);
+        alert('Export PDF failed!');
+    }
+}
+
+// 添加导出按钮事件监听
+document.getElementById('exportPDF').addEventListener('click', function() {
+    const selectedDate = document.getElementById('exportDate').value;
+    if (!selectedDate) {
+        alert('请选择导出日期！\nBitte wählen Sie ein Datum aus!');
+        return;
+    }
+    exportToPDF(selectedDate);
 });

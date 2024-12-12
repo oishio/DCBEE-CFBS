@@ -42,7 +42,7 @@
             <ul>
                 <li>姓名 / Name：请填写您的真实姓名 / Bitte geben Sie Ihren echten Namen ein</li>
                 <li>位置 / Position：选择您最擅长的场上位置 / Wählen Sie Ihre beste Position auf dem Feld</li>
-                <li>技术等级 / Technisches Niveau：请按1-10评估自己的技术水平 / Bewerten Sie Ihr technisches Niveau von 1-10</li>
+                <li>技术等级 / Technisches Niveau：请按5-8评估自己的技术水平 / Bewerten Sie Ihr technisches Niveau von 5-8</li>
             </ul>
         </div>
         
@@ -118,8 +118,8 @@
                     </div>
                 </div>
 
-                <input type="number" id="age" placeholder="年龄 / Alter" min="15" max="60" required>
-                <input type="number" id="experience" placeholder="球龄（年） / Fußballerfahrung (Jahre)" min="0" max="40" required>
+                <input type="number" id="age" placeholder="年龄 / Alter" min="15" max="70" required>
+                <input type="number" id="experience" placeholder="球龄（年） / Fußballerfahrung (Jahre)" min="0" max="60" required>
                 <select id="preferredFoot" required>
                     <option value="">惯用脚 / Bevorzugter Fuß</option>
                     <option value="left">左脚 / Links</option>
@@ -152,14 +152,12 @@
         </div>
 
         <div class="history-section">
-            <div class="history-header-container">
-                <h2>报名历史记录 / Anmeldeverlauf</h2>
-                <div class="history-controls">
-                    <select id="exportDate" class="export-date-select">
-                        <option value="">选择导出日期 / Datum auswählen</option>
-                    </select>
-                    <button id="exportPDF" class="export-btn">导出PDF / PDF exportieren</button>
-                </div>
+            <h2>报名历史记录 / Anmeldeverlauf</h2>
+            <div class="history-controls">
+                <select id="exportDate" class="export-date-select">
+                    <option value="">选择导出日期 / Datum auswählen</option>
+                </select>
+                <button id="exportPDF" class="export-btn">导出PDF / PDF exportieren</button>
             </div>
             <div class="history-accordion">
                 <div class="history-list">
