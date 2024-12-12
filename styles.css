@@ -320,3 +320,231 @@ form input[type="number"] {
 .team.substitutes ul li {
     border-bottom: 1px dashed #dc3545;
 } 
+
+.history-container {
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin: 20px;
+}
+
+.history-container h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.nav-item {
+    cursor: pointer;
+    padding: 10px 15px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.nav-item:hover {
+    background-color: #f0f0f0;
+} 
+
+/* 历史记录样式 */
+.history-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.history-date-group {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.history-date-group h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.history-players-list {
+    list-style: none;
+    padding: 0;
+}
+
+.history-players-list li {
+    padding: 8px 0;
+    border-bottom: 1px dashed #e9ecef;
+    color: #495057;
+}
+
+.history-players-list li:last-child {
+    border-bottom: none;
+} 
+
+.total-players {
+    color: #666;
+    font-size: 0.9em;
+    margin: 5px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.history-players-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: #fff;
+    margin: 5px 0;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+} 
+
+.history-accordion {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.history-date-group {
+    margin-bottom: 1px;
+    background: #fff;
+}
+
+.history-header {
+    padding: 15px;
+    background: #f8f9fa;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s;
+}
+
+.history-header:hover {
+    background: #e9ecef;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-content h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.1em;
+}
+
+.player-count {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.toggle-icon {
+    color: #666;
+    transition: transform 0.3s;
+}
+
+.history-content {
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background: #fff;
+    padding: 0 15px;
+}
+
+.history-content.collapsed {
+    max-height: 0;
+    padding: 0 15px;
+}
+
+.history-players-list {
+    padding: 15px 0;
+    margin: 0;
+}
+
+.history-players-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.history-players-list li:last-child {
+    border-bottom: none;
+} 
+
+.history-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.history-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.export-date-select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 150px;
+}
+
+.export-btn {
+    background: #4CAF50;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.export-btn:hover {
+    background: #45a049;
+}
+
+.export-btn:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+} 
+
+.registered-players li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 5px 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.registered-players li:hover {
+    background: #e9ecef;
+}
+
+.player-info {
+    flex: 1;
+}
+
+.delete-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.delete-btn:hover {
+    background: #c82333;
+} 

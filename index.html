@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="足球报名和自动组队系统">
-    <title>DCBEE-CFBS足球报名系统</title>
+    <meta name="description" content="足球报名和自动组队系统 / Fußball-Anmeldung und automatisches Team-System">
+    <title>DCBEE-CFBS足球报名系统 / DCBEE-CFBS Fußball-Anmeldesystem</title>
     <link rel="stylesheet" href="styles.css">
     <meta name="force-deploy" content="2024">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,54 +12,55 @@
 </head>
 <body>
     <div class="container">
-        <h1>DCBEE-CFBS足球报名系统</h1>
+        <h1>DCBEE-CFBS足球报名系统 / DCBEE-CFBS Fußball-Anmeldesystem</h1>
         
         <div class="description">
-            <p>欢迎使用足球报名系统！请填写以下信息进行报名：</p>
+            <p>欢迎使用足球报名系统！请填写以下信息进行报名：<br>
+                Willkommen beim Fußball-Anmeldesystem! Bitte füllen Sie die folgenden Informationen aus:</p>
             <div class="schedule-info">
-                <h3>训练时间和地点：</h3>
+                <h3>训练时间和地点 / Trainingszeit und -ort:</h3>
                 <div class="date-select">
                     <select id="trainingDate" required>
-                        <option value="">选择训练日期</option>
+                        <option value="">选择训练日期 / Trainingsdatum</option>
                         <!-- 选项将由 JavaScript 动态生成 -->
                     </select>
                 </div>
                 <div class="schedule-grid">
                     <div class="schedule-item" id="wednesdaySession">
-                        <h4>周三晚场</h4>
-                        <p>时间：20:00 - 22:00</p>
-                        <p>地点：Franz-Liszt-Strasse 37, 38126, BS</p>
+                        <h4>周三晚场 / Mittwoch Abend</h4>
+                        <p>时间 / Zeit：20:00 - 22:00</p>
+                        <p>地点 / Ort：Franz-Liszt-Strasse 37, 38126, BS</p>
                     </div>
                     <div class="schedule-item" id="saturdaySession">
-                        <h4>周六傍晚场</h4>
-                        <p>时间：18:00 - 20:00</p>
-                        <p>地点：Beethovenstrasse 16, 38106, BS</p>
+                        <h4>周六傍晚场 / Samstag Abend</h4>
+                        <p>时间 / Zeit：18:00 - 20:00</p>
+                        <p>地点 / Ort：Beethovenstrasse 16, 38106, BS</p>
                     </div>
                 </div>
             </div>
             <ul>
-                <li>姓名：请填写您的真实姓名</li>
-                <li>位置：选择您最擅长的场上位置</li>
-                <li>技术等级：请按1-10评估自己的技术水平</li>
+                <li>姓名 / Name：请填写您的真实姓名 / Bitte geben Sie Ihren echten Namen ein</li>
+                <li>位置 / Position：选择您最擅长的场上位置 / Wählen Sie Ihre beste Position auf dem Feld</li>
+                <li>技术等级 / Technisches Niveau：请按1-10评估自己的技术水平 / Bewerten Sie Ihr technisches Niveau von 1-10</li>
             </ul>
         </div>
         
-        <div class="registration-form">
-            <h2>球员报名</h2>
+        <div class="signup-form">
+            <h2>报名表 / Anmeldeformular</h2>
             <form id="playerForm">
-                <input type="text" id="playerName" placeholder="姓名" required>
+                <input type="text" id="playerName" placeholder="姓名 / Name" required>
                 
                 <div class="positions-container">
                     <label>位置选择（按优先级排序）：</label>
                     <div class="position-select">
                         <select id="position1" required>
-                            <option value="">首选位置</option>
+                            <option value="">首选位置 / Erste Position</option>
                             <optgroup label="5人制">
-                                <option value="striker">前锋(ST)</option>
-                                <option value="winger">边锋(LW/RW)</option>
-                                <option value="pivot">中场(MF)</option>
-                                <option value="defender">后卫(DF)</option>
-                                <option value="goalkeeper">守门员(GK)</option>
+                                <option value="striker">前锋(ST) / Stürmer(ST)</option>
+                                <option value="winger">边锋(LW/RW) / Flügel(LW/RW)</option>
+                                <option value="pivot">中场(MF) / Mittelfeld(MF)</option>
+                                <option value="defender">后卫(DF) / Verteidiger(DF)</option>
+                                <option value="goalkeeper">守门员(GK) / Torwart(GK)</option>
                             </optgroup>
                             <optgroup label="6人制">
                                 <option value="striker6">前锋(ST)</option>
@@ -71,13 +72,13 @@
                             </optgroup>
                         </select>
                         <select id="position2" required>
-                            <option value="">次选位置</option>
+                            <option value="">次选位置 / Zweite Position</option>
                             <optgroup label="5人制">
-                                <option value="striker">前锋(ST)</option>
-                                <option value="winger">边锋(LW/RW)</option>
-                                <option value="pivot">中场(MF)</option>
-                                <option value="defender">后卫(DF)</option>
-                                <option value="goalkeeper">守门员(GK)</option>
+                                <option value="striker">前锋(ST) / Stürmer(ST)</option>
+                                <option value="winger">边锋(LW/RW) / Flügel(LW/RW)</option>
+                                <option value="pivot">中场(MF) / Mittelfeld(MF)</option>
+                                <option value="defender">后卫(DF) / Verteidiger(DF)</option>
+                                <option value="goalkeeper">守门员(GK) / Torwart(GK)</option>
                             </optgroup>
                             <optgroup label="6人制">
                                 <option value="striker6">前锋(ST)</option>
@@ -89,13 +90,13 @@
                             </optgroup>
                         </select>
                         <select id="position3">
-                            <option value="">备选位置（可选）</option>
+                            <option value="">备选位置 / Dritte Position</option>
                             <optgroup label="5人制">
-                                <option value="striker">前锋(ST)</option>
-                                <option value="winger">边锋(LW/RW)</option>
-                                <option value="pivot">中场(MF)</option>
-                                <option value="defender">后卫(DF)</option>
-                                <option value="goalkeeper">守门员(GK)</option>
+                                <option value="striker">前锋(ST) / Stürmer(ST)</option>
+                                <option value="winger">边锋(LW/RW) / Flügel(LW/RW)</option>
+                                <option value="pivot">中场(MF) / Mittelfeld(MF)</option>
+                                <option value="defender">后卫(DF) / Verteidiger(DF)</option>
+                                <option value="goalkeeper">守门员(GK) / Torwart(GK)</option>
                             </optgroup>
                             <optgroup label="6人制">
                                 <option value="striker6">前锋(ST)</option>
@@ -109,65 +110,58 @@
                     </div>
                 </div>
 
-                <input type="number" id="age" placeholder="年龄" min="15" max="60" required>
-                <input type="number" id="experience" placeholder="球龄（年）" min="0" max="40" required>
+                <input type="number" id="age" placeholder="年龄 / Alter" min="15" max="60" required>
+                <input type="number" id="experience" placeholder="球龄（年） / Fußballerfahrung (Jahre)" min="0" max="40" required>
                 <select id="preferredFoot" required>
-                    <option value="">惯用脚</option>
-                    <option value="left">左脚</option>
-                    <option value="right">右脚</option>
-                    <option value="both">双脚</option>
+                    <option value="">惯用脚 / Bevorzugter Fuß</option>
+                    <option value="left">左脚 / Links</option>
+                    <option value="right">右脚 / Rechts</option>
+                    <option value="both">双脚 / Beide</option>
                 </select>
-                <input type="number" id="skillLevel" placeholder="技术等级 (1-10)" min="1" max="10" required>
-                <button type="submit">报名</button>
+                <input type="number" id="skillLevel" placeholder="技术等级 (1-10) / Technisches Niveau (1-10)" min="1" max="10" required>
+                <button type="submit">报名 / Anmelden</button>
             </form>
         </div>
 
         <div class="registered-players">
-            <h2>已报名球员</h2>
+            <h2>已报名球员 / Angemeldete Spieler</h2>
             <ul id="playersList"></ul>
         </div>
 
-        <div id="generateTeams" class="generate-btn">自动分队</div>
+        <div id="generateTeams" class="generate-btn">自动分队 / Teams automatisch erstellen</div>
 
         <div class="teams">
             <!-- 队伍将由 JavaScript 动态生成 -->
         </div>
 
-        <div class="stats-section">
-            <h2>球员统计</h2>
-            <div class="stats-container">
-                <div class="chart-container">
-                    <canvas id="positionChart"></canvas>
+        <div class="history-section">
+            <div class="history-header-container">
+                <h2>报名历史记录 / Anmeldeverlauf</h2>
+                <div class="history-controls">
+                    <select id="exportDate" class="export-date-select">
+                        <option value="">选择导出日期 / Datum auswählen</option>
+                    </select>
+                    <button id="exportPDF" class="export-btn">导出PDF / PDF exportieren</button>
                 </div>
-                <div class="stats-controls">
-                    <button id="exportBtn" class="export-btn">导出报名表</button>
-                    <div class="filter-container">
-                        <select id="positionFilter">
-                            <option value="">全部位置</option>
-                            <optgroup label="5人制">
-                                <option value="striker">前锋(ST)</option>
-                                <option value="winger">边锋(LW/RW)</option>
-                                <option value="pivot">中场(MF)</option>
-                                <option value="defender">后卫(DF)</option>
-                                <option value="goalkeeper">守门员(GK)</option>
-                            </optgroup>
-                            <optgroup label="6人制">
-                                <option value="striker6">前   (ST)</option>
-                                <option value="winger6">边锋(LW/RW)</option>
-                                <option value="midfielder6">中场(MF)</option>
-                                <option value="defender6">后卫(DF)</option>
-                                <option value="sweeper6">清道夫(SW)</option>
-                                <option value="goalkeeper6">守门员(GK)</option>
-                            </optgroup>
-                        </select>
-                    </div>
+            </div>
+            <div class="history-accordion">
+                <div class="history-list">
+                    <!-- 历史记录将由 JavaScript 动态生成 -->
                 </div>
             </div>
         </div>
+
+        <div id="root"></div>
     </div>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="script.js"></script>
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-font@1.0.1/fonts/NotoSansSC-Regular.js"></script>
 </body>
 </html> 

@@ -14,25 +14,78 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
+// 添加翻译对象
+const translations = {
+    team: {
+        zh: '队伍',
+        de: 'Team'
+    },
+    totalStrength: {
+        zh: '队伍总实力',
+        de: 'Gesamtstärke'
+    },
+    substitutes: {
+        zh: '补位席',
+        de: 'Ersatzbank'
+    },
+    delete: {
+        zh: '删除',
+        de: 'Löschen'
+    },
+    confirmDelete: {
+        zh: '确定要删除这名球员吗？',
+        de: 'Möchten Sie diesen Spieler wirklich löschen?'
+    },
+    signUpSuccess: {
+        zh: '报名成功！',
+        de: 'Erfolgreich angemeldet!'
+    },
+    signUpFailed: {
+        zh: '报名失败，请重试',
+        de: 'Anmeldung fehlgeschlagen, bitte erneut versuchen'
+    },
+    selectDate: {
+        zh: '请选择训练日期！',
+        de: 'Bitte Trainingsdatum auswählen!'
+    },
+    tooLateToModify: {
+        zh: '距离训练开始不到15分钟，无法修改报名信息！',
+        de: 'Weniger als 15 Minuten bis zum Training, Änderungen nicht mehr möglich!'
+    },
+    minPlayersRequired: {
+        zh: '至少需要5名球员才能分组！',
+        de: 'Mindestens 5 Spieler für Teamerstellung erforderlich!'
+    }
+};
+
 // 修改数据读取函数
 async function loadPlayers() {
     try {
+        const selectedDate = document.getElementById('trainingDate').value;
+        if (!selectedDate) return;
+
         const snapshot = await database.ref('players').once('value');
         const allPlayers = snapshot.val() || {};
-        
-        // 获取当前选择的训练日期
-        const selectedDate = document.getElementById('trainingDate').value;
         
         // 过滤出当前日期的球员
         players = Object.values(allPlayers).filter(player => {
             if (!player || !player.trainingDate) return false;
-            // 转换日期格式进行比较（只比较日期部分）
-            const playerDate = new Date(player.trainingDate).toDateString();
-            const selectedDateObj = new Date(selectedDate).toDateString();
-            return playerDate === selectedDateObj;
+            
+            // 将两个日期转换为相同的格式进行比较
+            const playerDate = new Date(player.trainingDate);
+            const selectedDateObj = new Date(selectedDate);
+            
+            return playerDate.getFullYear() === selectedDateObj.getFullYear() &&
+                   playerDate.getMonth() === selectedDateObj.getMonth() &&
+                   playerDate.getDate() === selectedDateObj.getDate();
         });
-        
+
+        // 不需要转换数据格式，直接使用原始数据
+        // players 数组中的每个对象已经包含了所需的所有字段：
+        // playerName, position1, position2, position3, etc.
+
         updatePlayersList();
+        displaySignUpHistory();
     } catch (error) {
         console.error('Error loading data:', error);
     }
@@ -42,13 +95,29 @@ async function loadPlayers() {
 async function savePlayers(player) {
     try {
         const playersRef = database.ref('players');
-        // 使用日期和姓名作为唯一标识
-        const dateStr = new Date(player.trainingDate).toDateString();
-        const playerKey = `${dateStr}_${player.name}`;
-        
-        await playersRef.child(playerKey).set(player);
+        const signUpData = {
+            playerName: document.getElementById('playerName').value,
+            position1: document.getElementById('position1').value,
+            position2: document.getElementById('position2').value,
+            position3: document.getElementById('position3').value,
+            age: document.getElementById('age').value,
+            experience: document.getElementById('experience').value,
+            preferredFoot: document.getElementById('preferredFoot').value,
+            skillLevel: document.getElementById('skillLevel').value,
+            trainingDate: document.getElementById('trainingDate').value,
+            signUpTime: new Date().toISOString(),
+            status: '已报名'
+        };
+
+        // 保存到当前报名列表
+        const playerKey = `${new Date(signUpData.trainingDate).toDateString()}_${signUpData.playerName}`;
+        await playersRef.child(playerKey).set(signUpData);
+
+        // 同时保存到历史记录
+        const historyRef = database.ref('signUpHistory').push();
+        await historyRef.set(signUpData);
+
         await loadPlayers();
-        
     } catch (error) {
         console.error('Error saving data:', error);
         alert('保存数据失败，请稍后重试！');
@@ -121,22 +190,196 @@ function getTrainingInfo() {
 
 let players = [];
 
-// 在页面加载时显示已存储的球员
+// 在页面加载时生成训练日期选项
+function generateTrainingDates() {
+    const trainingDateSelect = document.getElementById('trainingDate');
+    if (!trainingDateSelect) {
+        console.error('Cannot find trainingDate select element');
+        return;
+    }
+
+    // 定义所有训练日期
+    const dates = [
+        // 旧日期
+        { date: '2024-12-11', day: '周三' },
+        { date: '2024-12-14', day: '周六' },
+        { date: '2024-12-18', day: '周三' },
+        { date: '2025-01-08', day: '周三' },
+        { date: '2025-01-11', day: '周六' },
+        { date: '2025-01-15', day: '周三' },
+        { date: '2025-01-18', day: '周六' }
+    ];
+
+    // 添加新日期（2025-01-22 到 2025-02-26 的周三和周六）
+    let currentDate = new Date('2025-01-22');
+    const endDate = new Date('2025-02-26');
+    
+    while (currentDate <= endDate) {
+        const dayOfWeek = currentDate.getDay();
+        if (dayOfWeek === 3 || dayOfWeek === 6) {
+            dates.push({
+                date: currentDate.toISOString().split('T')[0],
+                day: dayOfWeek === 3 ? '周三' : '周六'
+            });
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // 按日期排序
+    dates.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // 只显示今天和将来的日期
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // 清除现有选项（保留默认选项）
+    while (trainingDateSelect.options.length > 1) {
+        trainingDateSelect.remove(1);
+    }
+
+    // 添加日期选项
+    dates.forEach(({ date, day }) => {
+        const currentDate = new Date(date);
+        if (currentDate >= today) {
+            const option = document.createElement('option');
+            const dayOfWeekDE = day === '周三' ? 'Mittwoch' : 'Samstag';
+            option.value = date;
+            option.textContent = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月${currentDate.getDate()}日 ${day} / ${currentDate.getDate()}.${currentDate.getMonth() + 1}.${currentDate.getFullYear()} ${dayOfWeekDE}`;
+            trainingDateSelect.appendChild(option);
+        }
+    });
+
+    console.log('Final select options count:', trainingDateSelect.options.length);
+}
+
+// 在页面加载时调用
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('DOM Content Loaded');
     generateTrainingDates();
+    console.log('Training dates generated');
+    
     // 等待日期选项生成完成
     await new Promise(resolve => setTimeout(resolve, 100));
+    
     // 选择第一个日期
     const dateSelect = document.getElementById('trainingDate');
+    console.log('Date select options:', dateSelect.options.length);
+    
     if (dateSelect.options.length > 1) {
         dateSelect.selectedIndex = 1;  // 选择第一个有效日期
+        console.log('Selected first date:', dateSelect.value);
         // 触发 change 事件
         dateSelect.dispatchEvent(new Event('change'));
     }
+    
     // 加载球员数据
     await loadPlayers();
     
-    // 添加姓名输入事件监听
+    // 显示历史记录
+    await displaySignUpHistory();
+    
+    // 添加所有事件监听器
+    // 1. 表单提交事件
+    document.getElementById('playerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const selectedDate = document.getElementById('trainingDate').value;
+        if (!selectedDate) {
+            alert('请选择训练日期！');
+            return;
+        }
+        
+        const signUpData = {
+            name: document.getElementById('playerName').value,
+            positions: [
+                document.getElementById('position1').value,
+                document.getElementById('position2').value,
+                document.getElementById('position3').value
+            ].filter(Boolean),
+            age: document.getElementById('age').value,
+            experience: document.getElementById('experience').value,
+            preferredFoot: document.getElementById('preferredFoot').value,
+            skillLevel: document.getElementById('skillLevel').value,
+            trainingDate: selectedDate,
+            signUpTime: new Date().toISOString(),
+            status: '已报名'
+        };
+
+        try {
+            // 保存到报名列表
+            const playerKey = `${new Date(selectedDate).toDateString()}_${signUpData.name}`;
+            await database.ref('players').child(playerKey).set(signUpData);
+
+            // 保存到历史记录
+            const historyRef = database.ref('signUpHistory').push();
+            await historyRef.set(signUpData);
+
+            alert('报名成功！');
+            this.reset();
+            await loadPlayers();  // 重新加载球员列表
+        } catch (error) {
+            console.error('报名失败:', error);
+            alert('报名失败，请重试');
+        }
+    });
+    
+    // 2. 训练日期变更事件
+    dateSelect.addEventListener('change', async function() {
+        // 获取训练信息并更新显示
+        const trainingInfo = getTrainingInfo();
+        document.querySelectorAll('.schedule-item').forEach(item => {
+            item.classList.remove('active-session');
+            const dayText = item.querySelector('h4').textContent;
+            if (dayText.includes(trainingInfo.day)) {
+                item.classList.add('active-session');
+            }
+        });
+
+        // 加载该日期的球员数据
+        await loadPlayers();
+        
+        // 检查报名状态
+        checkRegistrationStatus();
+        
+        // 如果有足够的球员，自动分组（不需要点击按钮）
+        if (players.length >= 5) {
+            generateTeams();  // 直接调用分组函数
+        } else {
+            // 清空队伍显示
+            const teamsContainer = document.querySelector('.teams');
+            teamsContainer.innerHTML = '';
+        }
+    });
+    
+    // 3. 导出按钮事件
+    const exportPDFBtn = document.getElementById('exportPDF');
+    if (exportPDFBtn) {
+        exportPDFBtn.addEventListener('click', async () => {
+            const selectedDate = document.getElementById('exportDate').value;
+            if (!selectedDate) {
+                alert('请选择要导出的日期！');
+                return;
+            }
+            
+            try {
+                exportPDFBtn.disabled = true;
+                exportPDFBtn.textContent = '导出中...';
+                
+                await exportToPDF(selectedDate);
+                
+                exportPDFBtn.disabled = false;
+                exportPDFBtn.textContent = '导出PDF';
+            } catch (error) {
+                console.error('导出失败:', error);
+                alert('导出失败，请重试');
+                
+                exportPDFBtn.disabled = false;
+                exportPDFBtn.textContent = '导出PDF';
+            }
+        });
+    }
+    
+    // 4. 姓名输入事件
     document.getElementById('playerName').addEventListener('input', async function(e) {
         const name = e.target.value;
         if (!name) return;
@@ -167,15 +410,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
     
-    const trainingInfo = getTrainingInfo();
+    // 5. 状态检查
+    checkRegistrationStatus();
     
-    // 更新显示的时间和地点
-    document.querySelectorAll('.schedule-item').forEach(item => {
-        const dayText = item.querySelector('h4').textContent;
-        if (dayText.includes(trainingInfo.day)) {
-            item.classList.add('active-session');
-        }
-    });
+    // 6. 设置定时器
+    setInterval(checkRegistrationStatus, 60000);  // 每分钟检查一次状态
+    setInterval(loadPlayers, 30000);  // 每30秒刷新一次
+    
+    // 7. 训练日期变更事件（移到这里）
+    dateSelect.addEventListener('change', checkRegistrationStatus);
 });
 
 // 添加时间检查函数
@@ -197,39 +440,6 @@ function isRegistrationOpen(trainingDate) {
     return timeDiff > 15;
 }
 
-// 修改表单提交事件
-document.getElementById('playerForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const selectedDate = document.getElementById('trainingDate').value;
-    if (!selectedDate) {
-        alert('请选择训练日期！');
-        return;
-    }
-    
-    if (!isRegistrationOpen(selectedDate)) {
-        alert('距离训练开始不到15分钟，报名已关闭！');
-        return;
-    }
-    
-    const player = {
-        name: document.getElementById('playerName').value,
-        positions: [
-            document.getElementById('position1').value,
-            document.getElementById('position2').value,
-            document.getElementById('position3').value
-        ].filter(pos => pos !== ''),
-        age: parseInt(document.getElementById('age').value),
-        experience: parseInt(document.getElementById('experience').value),
-        preferredFoot: document.getElementById('preferredFoot').value,
-        skillLevel: parseInt(document.getElementById('skillLevel').value),
-        trainingDate: document.getElementById('trainingDate').value
-    };
-    
-    await savePlayers(player);
-    this.reset();
-});
-
 // 修改删除球员函数
 async function deletePlayer(index) {
     const selectedDate = document.getElementById('trainingDate').value;
@@ -243,16 +453,17 @@ async function deletePlayer(index) {
         return;
     }
     
-    if (confirm('确定要删除这名球员吗？')) {
+    if (confirm(`${translations.confirmDelete.zh}\n${translations.confirmDelete.de}`)) {
         const player = players[index];
         const dateStr = new Date(player.trainingDate).toDateString();
-        const playerKey = `${dateStr}_${player.name}`;
+        const playerKey = `${dateStr}_${player.playerName}`;
         await database.ref('players').child(playerKey).remove();
         await loadPlayers();
+        await displaySignUpHistory();
     }
 }
 
-// 修改自动分组功能为独立函数
+// 修改自动分组功能
 function generateTeams() {
     if (players.length < 5) {
         const teamsContainer = document.querySelector('.teams');
@@ -263,7 +474,9 @@ function generateTeams() {
     // 计算综合实力（技术等级 + 球龄加成）
     const playersWithStrength = players.map(player => ({
         ...player,
-        totalStrength: player.skillLevel + Math.min(Math.floor(player.experience / 5), 2)
+        name: player.playerName,
+        positions: [player.position1, player.position2, player.position3].filter(Boolean),
+        totalStrength: parseInt(player.skillLevel) + Math.min(Math.floor(parseInt(player.experience) / 5), 2)
     }));
     
     // 按综合实力排序
@@ -314,32 +527,30 @@ function displayTeams(teams, substitutes = []) {
     const teamsContainer = document.querySelector('.teams');
     teamsContainer.innerHTML = '';
     
-    // 显示主要队伍
     teams.forEach((team, index) => {
         const teamDiv = document.createElement('div');
         teamDiv.className = 'team';
         teamDiv.innerHTML = `
-            <h3>队伍 ${index + 1}</h3>
-            <p>队伍总实力: ${team.totalSkill}</p>
+            <h3>${translations.team.zh} ${index + 1} / ${translations.team.de} ${index + 1}</h3>
+            <p>${translations.totalStrength.zh}: ${team.totalSkill} / ${translations.totalStrength.de}: ${team.totalSkill}</p>
             <ul></ul>
         `;
         
         const ul = teamDiv.querySelector('ul');
         team.players.forEach(player => {
             const li = document.createElement('li');
-            li.textContent = `${player.name} - ${player.positions.map(getPositionName).join('/')}`;
+            li.textContent = `${player.playerName} - ${getPositionName(player.position1)}`;
             ul.appendChild(li);
         });
         
         teamsContainer.appendChild(teamDiv);
     });
     
-    // 如果有替补球员，显示替补席
     if (substitutes.length > 0) {
         const subsDiv = document.createElement('div');
         subsDiv.className = 'team substitutes';
         subsDiv.innerHTML = `
-            <h3>补位席</h3>
+            <h3>${translations.substitutes.zh} / ${translations.substitutes.de}</h3>
             <ul></ul>
         `;
         
@@ -400,6 +611,7 @@ function updatePositionChart() {
 
 // 位置名转换
 function getPositionName(pos) {
+    if (!pos) return '';
     const positionNames = {
         'striker': '前锋(ST)',
         'winger': '边锋(LW/RW)',
@@ -415,142 +627,6 @@ function getPositionName(pos) {
     };
     return positionNames[pos] || pos;
 }
-
-// 修改导出功能
-document.getElementById('exportBtn').addEventListener('click', function() {
-    const trainingInfo = getTrainingInfo();
-    
-    const wb = XLSX.utils.book_new();
-    const data = players.map(p => ({
-        '姓名': p.name,
-        '首选位置': getPositionName(p.positions[0]),
-        '次选位置': p.positions[1] ? getPositionName(p.positions[1]) : '',
-        '备选位置': p.positions[2] ? getPositionName(p.positions[2]) : '',
-        '年龄': p.age,
-        '球龄': p.experience,
-        '惯用脚': p.preferredFoot,
-        '技术等级': p.skillLevel
-    }));
-    
-    const ws = XLSX.utils.json_to_sheet(data);
-    
-    // 修改表信息
-    XLSX.utils.sheet_add_aoa(ws, [
-        [`DCBEE-CFBS足球报名   (${trainingInfo.date})`],
-        [`训练时间：${trainingInfo.time}`],
-        [`训练地点：${trainingInfo.address}`],
-        ['']  // 空行
-    ], { origin: 'A1' });
-    
-    // 调整列宽
-    ws['!cols'] = [
-        { wch: 15 }, // 姓名
-        { wch: 15 }, // 首选位置
-        { wch: 15 }, // 次选位置
-        { wch: 15 }, // 备选位置
-        { wch: 8 },  // 年龄
-        { wch: 10 }, // 球龄
-        { wch: 10 }, // 惯用脚
-        { wch: 10 }  // 技术等级
-    ];
-    
-    XLSX.utils.book_append_sheet(wb, ws, "球员名单");
-    XLSX.writeFile(wb, `DCBEE-CFBS足球报名表_${trainingInfo.date}.xlsx`);
-});
-
-// 位置筛选
-document.getElementById('positionFilter').addEventListener('change', function(e) {
-    const filterValue = e.target.value;
-    const playersList = document.getElementById('playersList');
-    playersList.innerHTML = '';
-    
-    const filteredPlayers = filterValue ? 
-        players.filter(p => p.positions.includes(filterValue)) : 
-        players;
-    
-    filteredPlayers.forEach((player, index) => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-            ${player.name}
-            <button onclick="deletePlayer(${players.indexOf(player)})" class="delete-btn">删除</button>
-        `;
-        playersList.appendChild(li);
-    });
-});
-
-// 修改生成训练日期选项的函数
-function generateTrainingDates() {
-    const select = document.getElementById('trainingDate');
-    // 清空现有选项
-    select.innerHTML = '<option value="">选择训练日期</option>';
-    
-    const dates = [
-        { date: '2024-12-11', day: '周三' },
-        { date: '2024-12-14', day: '周六' },
-        { date: '2024-12-18', day: '周三' },
-        { date: '2025-01-08', day: '周三' },
-        { date: '2025-01-11', day: '周六' },
-        { date: '2025-01-15', day: '周三' },
-        { date: '2025-01-18', day: '周六' }
-    ];
-
-    // 按日期排序
-    dates.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    // 只显示今天和将来的日期
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    dates.forEach(({ date, day }) => {
-        const currentDate = new Date(date);
-        if (currentDate >= today) {
-            const dateStr = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月${currentDate.getDate()}日`;
-            const timeStr = day === '周三' ? '20:00-22:00' : '18:00-20:00';
-            const addressStr = day === '周三' ? 
-                'Franz-Liszt-Strasse 37, 38126, BS' : 
-                'Beethovenstrasse 16, 38106, BS';
-            
-            const option = document.createElement('option');
-            option.value = currentDate.toISOString();
-            option.textContent = `${dateStr} ${day} ${timeStr} (${addressStr})`;
-            select.appendChild(option);
-        }
-    });
-
-    // 如果没有选择日期，自动选择最近的日期
-    if (!select.value && select.options.length > 1) {
-        select.selectedIndex = 1;
-        select.dispatchEvent(new Event('change'));
-    }
-}
-
-// 修改日期选择事件监听
-document.getElementById('trainingDate').addEventListener('change', async function() {
-    // 获取训练信息并更新显示
-    const trainingInfo = getTrainingInfo();
-    document.querySelectorAll('.schedule-item').forEach(item => {
-        item.classList.remove('active-session');
-        const dayText = item.querySelector('h4').textContent;
-        if (dayText.includes(trainingInfo.day)) {
-            item.classList.add('active-session');
-        }
-    });
-
-    // 加载该日期的球员数据
-    await loadPlayers();
-    
-    // 检查报名状态
-    checkRegistrationStatus();
-    
-    // 如果有足够的球员，自动分组（不需要点击按钮）
-    if (players.length >= 5) {
-        generateTeams();  // 直接调用分组函数
-    } else {
-        // 清空队伍显示
-        const teamsContainer = document.querySelector('.teams');
-        teamsContainer.innerHTML = '';
-    }
-});
 
 // 添加定时检查
 function checkRegistrationStatus() {
@@ -577,7 +653,7 @@ function checkRegistrationStatus() {
 // 每分钟检查一次状态
 setInterval(checkRegistrationStatus, 60000);
 
-// 选择日期时也检查状态
+// 选择日期也检查状态
 document.getElementById('trainingDate').addEventListener('change', checkRegistrationStatus);
 
 // 添加定时刷新
@@ -590,15 +666,15 @@ function updatePlayersList() {
     
     players.forEach((player, index) => {
         const li = document.createElement('li');
+        const playerName = player.name;
+        const position = getPositionName(player.positions[0]);
+        
         li.innerHTML = `
-            ${player.name}
-            <button onclick="deletePlayer(${index})" class="delete-btn">删除</button>
+            <span class="player-info">${playerName} - ${position}</span>
+            <button onclick="deletePlayer(${index})" class="delete-btn">${translations.delete.zh} / ${translations.delete.de}</button>
         `;
         playersList.appendChild(li);
     });
-    
-    // 更新图表
-    updatePositionChart();
     
     // 如果有足够的球员，自动分组
     if (players.length >= 5) {
@@ -606,5 +682,268 @@ function updatePlayersList() {
     } else {
         const teamsContainer = document.querySelector('.teams');
         teamsContainer.innerHTML = '';
+    }
+}
+
+// 修改显示历史记录的函数
+async function displaySignUpHistory() {
+    const historyList = document.querySelector('.history-list');
+    historyList.innerHTML = '';
+
+    try {
+        // 获取历史记录数据
+        const historyRef = firebase.database().ref('signUpHistory');
+        const historySnapshot = await historyRef.once('value');
+        const historyData = historySnapshot.val() || {};
+
+        // 获取当前报名数据
+        const playersRef = firebase.database().ref('players');
+        const playersSnapshot = await playersRef.once('value');
+        const playersData = playersSnapshot.val() || {};
+
+        // 按日期分组历史记录
+        const groupedHistory = {};
+        
+        // 处理历史记录数据
+        Object.entries(historyData).forEach(([key, record]) => {
+            if (!record || !record.trainingDate) return;
+            
+            const date = record.trainingDate;
+            if (!groupedHistory[date]) {
+                groupedHistory[date] = new Map();
+            }
+            
+            // 确保记录包含所有必要的字段
+            const processedRecord = {
+                playerName: record.name || record.playerName || '未知',
+                position1: record.position1 || record.positions?.[0] || '',
+                position2: record.position2 || record.positions?.[1] || '',
+                position3: record.position3 || record.positions?.[2] || '',
+                trainingDate: date,
+                signUpTime: record.signUpTime || new Date().toISOString(),
+                status: record.status || '已报名'
+            };
+            
+            groupedHistory[date].set(processedRecord.playerName, processedRecord);
+        });
+
+        // 处理当前报名数据
+        Object.entries(playersData).forEach(([key, record]) => {
+            if (!record || !record.trainingDate) return;
+            
+            const date = record.trainingDate;
+            if (!groupedHistory[date]) {
+                groupedHistory[date] = new Map();
+            }
+            
+            const processedRecord = {
+                playerName: record.name || record.playerName || '未知',
+                position1: record.position1 || record.positions?.[0] || '',
+                position2: record.position2 || record.positions?.[1] || '',
+                position3: record.position3 || record.positions?.[2] || '',
+                trainingDate: date,
+                signUpTime: record.signUpTime || new Date().toISOString(),
+                status: record.status || '已报名'
+            };
+            
+            groupedHistory[date].set(processedRecord.playerName, processedRecord);
+        });
+
+        // 按日期倒序排序
+        const sortedDates = Object.keys(groupedHistory).sort((a, b) => 
+            new Date(b) - new Date(a)
+        );
+
+        sortedDates.forEach(date => {
+            const dateGroup = document.createElement('div');
+            dateGroup.className = 'history-date-group';
+            
+            // 创建折叠面板的标题部分
+            const header = document.createElement('div');
+            header.className = 'history-header';
+            
+            const trainingDate = new Date(date);
+            const dateStr = `${trainingDate.getFullYear()}年${trainingDate.getMonth() + 1}月${trainingDate.getDate()}日训练`;
+            const playerCount = groupedHistory[date].size;
+            
+            header.innerHTML = `
+                <div class="header-content">
+                    <h3>${dateStr}</h3>
+                    <span class="player-count">共 ${playerCount} 人报名</span>
+                </div>
+                <span class="toggle-icon">▼</span>
+            `;
+            
+            // 创建内容部分
+            const content = document.createElement('div');
+            content.className = 'history-content collapsed';
+            
+            const playersList = document.createElement('ul');
+            playersList.className = 'history-players-list';
+            
+            // 将 Map 转换为数组并按姓名排序
+            const sortedPlayers = Array.from(groupedHistory[date].values())
+                .sort((a, b) => (a.playerName || '').localeCompare(b.playerName || ''));
+            
+            sortedPlayers.forEach(record => {
+                const playerItem = document.createElement('li');
+                const position1Text = getPositionName(record.position1 || '');
+                const position2Text = record.position2 ? ` / ${getPositionName(record.position2)}` : '';
+                playerItem.textContent = `${record.playerName} - ${position1Text}${position2Text}`;
+                playersList.appendChild(playerItem);
+            });
+
+            content.appendChild(playersList);
+            dateGroup.appendChild(header);
+            dateGroup.appendChild(content);
+            historyList.appendChild(dateGroup);
+
+            // 添加点击事件处理
+            header.addEventListener('click', () => {
+                content.classList.toggle('collapsed');
+                const toggleIcon = header.querySelector('.toggle-icon');
+                toggleIcon.textContent = content.classList.contains('collapsed') ? '▼' : '▲';
+            });
+        });
+
+        // 保存历史数据到全局变量，供导出功能使用
+        window.historyData = groupedHistory;
+
+        // 更新导出日期选择器
+        const exportDateSelect = document.getElementById('exportDate');
+        exportDateSelect.innerHTML = '<option value="">选择导出日期</option>';
+        sortedDates.forEach(date => {
+            const trainingDate = new Date(date);
+            const dateStr = `${trainingDate.getFullYear()}年${trainingDate.getMonth() + 1}月${trainingDate.getDate()}日`;
+            exportDateSelect.innerHTML += `<option value="${date}">${dateStr}</option>`;
+        });
+    } catch (error) {
+        console.error('获取历史记录失败:', error);
+        historyList.innerHTML = '<p class="error-message">获取历史记录失败</p>';
+    }
+}
+
+// 修改导出PDF功能
+async function exportToPDF(date) {
+    const groupedHistory = window.historyData?.[date];
+    if (!groupedHistory) return;
+
+    try {
+        // 创建 PDF 实例
+        const doc = new jspdf.jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+        
+        // 添加中文字体支持
+        doc.addFont('NotoSansSC-Regular', 'NotoSansSC', 'normal');
+        doc.setFont('NotoSansSC');
+        
+        const trainingDate = new Date(date);
+        const dateStr = `${trainingDate.getFullYear()}年${trainingDate.getMonth() + 1}月${trainingDate.getDate()}日训练`;
+
+        // 设置标题
+        doc.setFontSize(16);
+        doc.text(dateStr + ' 报名表', 15, 15);
+
+        // 准备表格数据
+        const players = Array.from(groupedHistory.values());
+        const tableData = players
+            .sort((a, b) => a.playerName.localeCompare(b.playerName))
+            .map((player, index) => [
+                index + 1,
+                player.playerName,
+                getPositionName(player.position1),
+                player.position2 ? getPositionName(player.position2) : '',
+                player.age,
+                player.experience + '年',
+                player.skillLevel + '级'
+            ]);
+
+        // 生成表格
+        doc.autoTable({
+            startY: 25,
+            head: [['序号', '姓名', '首选位置', '次选位置', '年龄', '球龄', '技术等级']],
+            body: tableData,
+            theme: 'grid',
+            styles: {
+                font: 'NotoSansSC',
+                fontSize: 10,
+                cellPadding: 3,
+                overflow: 'linebreak',
+                halign: 'center',
+                valign: 'middle',
+                lineWidth: 0.1
+            },
+            headStyles: {
+                fillColor: [66, 139, 202],
+                textColor: 255,
+                fontStyle: 'bold',
+                fontSize: 11
+            },
+            columnStyles: {
+                0: { cellWidth: 15 },  // 序号列宽
+                1: { cellWidth: 30 },  // 姓名列宽
+                2: { cellWidth: 35 },  // 首选位置列宽
+                3: { cellWidth: 35 },  // 次选位置列宽
+                4: { cellWidth: 15 },  // 年龄列宽
+                5: { cellWidth: 20 },  // 球龄列宽
+                6: { cellWidth: 20 }   // 技术等级列宽
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245]
+            },
+            didDrawPage: function(data) {
+                // 添加页脚
+                doc.setFontSize(8);
+                doc.text(
+                    `打印时间：${new Date().toLocaleString()}`,
+                    data.settings.margin.left,
+                    doc.internal.pageSize.height - 10
+                );
+            }
+        });
+
+        // 添加统计信息
+        const finalY = doc.previousAutoTable.finalY || 25;
+        doc.setFontSize(12);
+        
+        // 添加位置统计
+        const positionStats = players.reduce((stats, player) => {
+            const pos = getPositionName(player.position1);
+            stats[pos] = (stats[pos] || 0) + 1;
+            return stats;
+        }, {});
+
+        doc.text(`总人数：${players.length}人`, 15, finalY + 10);
+        
+        let yPos = finalY + 25;
+        doc.text('位置分布：', 15, yPos);
+        yPos += 7;
+        
+        Object.entries(positionStats).forEach(([pos, count]) => {
+            doc.text(`${pos}: ${count}人`, 25, yPos);
+            yPos += 7;
+        });
+
+        // 使用 output 方法直接获取 base64 编码的 PDF
+        const pdfOutput = doc.output('datauristring');
+        
+        // 创建一个隐藏的 iframe 来显示 PDF
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = pdfOutput;
+        document.body.appendChild(iframe);
+        
+        // 触发 iframe 的打印功能
+        setTimeout(() => {
+            iframe.contentWindow.print();
+            document.body.removeChild(iframe);
+        }, 1000);
+        
+    } catch (error) {
+        console.error('导出PDF失败:', error);
+        alert('导出PDF失败，请重试');
     }
 }
