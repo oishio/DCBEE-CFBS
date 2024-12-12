@@ -254,6 +254,7 @@ form input[type="number"] {
     padding: 15px;
     border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
 }
 
 .schedule-item h4 {
@@ -275,8 +276,9 @@ form input[type="number"] {
 } 
 
 .schedule-item.active-session {
+    background: #f8f9fa;
     border: 2px solid #4CAF50;
-    background: #f0f9f0;
+    box-shadow: 0 2px 5px rgba(76,175,80,0.2);
 }
 
 .schedule-item.active-session h4 {
@@ -532,6 +534,16 @@ form input[type="number"] {
 
 .player-info {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.player-info .attendance-rate {
+    font-size: 0.9em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background-color: #f8f9fa;
 }
 
 .delete-btn {
@@ -547,4 +559,21 @@ form input[type="number"] {
 
 .delete-btn:hover {
     background: #c82333;
+} 
+
+.attendance-info {
+    margin: 5px 0;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.attendance-info span:first-child {
+    color: #666;
+}
+
+.attendance-info span:last-child {
+    font-weight: bold;
+    margin-left: 5px;
 } 

@@ -9,6 +9,7 @@
     <meta name="force-deploy" content="2024">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pinyin-pro/dist/index.js"></script>
 </head>
 <body>
     <div class="container">
@@ -48,7 +49,14 @@
         <div class="signup-form">
             <h2>报名表 / Anmeldeformular</h2>
             <form id="playerForm">
-                <input type="text" id="playerName" placeholder="姓名 / Name" required>
+                <div class="form-group">
+                    <label for="playerName">姓名 / Name</label>
+                    <input type="text" id="playerName" required>
+                    <div id="attendanceRate" class="attendance-info">
+                        <span>出场率 / Teilnahmequote: </span>
+                        <span id="attendanceValue">0%</span>
+                    </div>
+                </div>
                 
                 <div class="positions-container">
                     <label>位置选择（按优先级排序）：</label>
@@ -118,7 +126,16 @@
                     <option value="right">右脚 / Rechts</option>
                     <option value="both">双脚 / Beide</option>
                 </select>
-                <input type="number" id="skillLevel" placeholder="技术等级 (1-10) / Technisches Niveau (1-10)" min="1" max="10" required>
+                <div class="form-group">
+                    <label for="skillLevel">技术等级 / Technisches Niveau:</label>
+                    <select id="skillLevel" required>
+                        <option value="">选择等级 / Niveau wählen</option>
+                        <option value="5">5级 - 业余水平 / Amateurniveau</option>
+                        <option value="6">6级 - 中等水平 / Mittleres Niveau</option>
+                        <option value="7">7级 - 良好水平 / Gutes Niveau</option>
+                        <option value="8">8级 - 优秀水平 / Sehr gutes Niveau</option>
+                    </select>
+                </div>
                 <button type="submit">报名 / Anmelden</button>
             </form>
         </div>
