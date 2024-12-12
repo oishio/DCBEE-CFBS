@@ -810,3 +810,181 @@ document.getElementById('exportPDF').addEventListener('click', function() {
     }
     exportToPDF(selectedDate);
 });
+
+// 球员评分分析
+async function analyzePlayerRatings() {
+    try {
+        // 获取历史数据
+        const historySnapshot = await database.ref('signUpHistory').once('value');
+        const historyData = historySnapshot.val() || {};
+        
+        // 获取所有球员的最新记录
+        const playerMap = new Map();
+        Object.values(historyData).forEach(player => {
+            const playerName = player.name || player.playerName;
+            const existingPlayer = playerMap.get(playerName);
+            
+            // 如果没有该球员的记录，或者这是更新的记录，则更新Map
+            if (!existingPlayer || new Date(player.trainingDate) > new Date(existingPlayer.trainingDate)) {
+                playerMap.set(playerName, player);
+            }
+        });
+        
+        // 转换为数组
+        const players = Array.from(playerMap.values());
+        
+        // 分析每个球员
+        const analysis = await Promise.all(players.map(async player => {
+            const { attendanceRate } = await getPlayerLastRecord(player.name || player.playerName);
+            
+            // 计算综合评分
+            const skillWeight = 0.4;     // 技术等级权重
+            const expWeight = 0.3;       // 球龄权重
+            const attendWeight = 0.2;    // 出场率权重
+            const ageWeight = 0.1;       // 年龄权重
+            
+            const skillScore = player.skillLevel * 10;  // 技术等级得分
+            const expScore = Math.min(player.experience * 5, 100);  // 球龄得分，上限100
+            const attendScore = attendanceRate;  // 出场率得分
+            const ageScore = Math.max(0, 100 - Math.abs(28 - player.age) * 2);  // 年龄得分，以28岁为最佳
+            
+            const totalScore = (
+                skillScore * skillWeight +
+                expScore * expWeight +
+                attendScore * attendWeight +
+                ageScore * ageWeight
+            ).toFixed(1);
+            
+            // 计算身价
+            let marketValue = 0;
+            const score = parseFloat(totalScore);
+            if (score < 40) {
+                marketValue = 1;
+            } else if (score < 50) {
+                marketValue = 2;
+            } else if (score <= 60) {
+                marketValue = 2 + (score - 50);
+            } else if (score <= 70) {
+                marketValue = 12 + (score - 60) * 2;
+            } else if (score <= 80) {
+                marketValue = 32 + (score - 70) * 3;
+            } else if (score <= 90) {
+                marketValue = 62 + (score - 80) * 3;
+            } else {
+                marketValue = 92 + (score - 90) * 4;
+            }
+            
+            return {
+                name: player.name || player.playerName,
+                pinyinName: getPinyinName(player.name || player.playerName),
+                skillLevel: player.skillLevel,
+                experience: player.experience,
+                attendance: attendanceRate,
+                age: player.age,
+                totalScore,
+                marketValue: marketValue.toFixed(1),  // 保留一位小数
+                position: player.position1 ? getPositionName(player.position1).split(' / ')[0] : 'N/A'
+            };
+        }));
+        
+        // 按总分排序
+        analysis.sort((a, b) => b.totalScore - a.totalScore);
+        
+        return analysis;
+        
+    } catch (error) {
+        console.error('分析失败:', error);
+        return [];
+    }
+}
+
+// 修改分析按钮事件监听
+document.getElementById('analyzeBtn').addEventListener('click', async function() {
+    try {
+        const analysis = await analyzePlayerRatings();
+        
+        // 创建PDF文档
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4', true);
+        
+        // 使用默认字体
+        doc.setFont('helvetica');
+        
+        // 设置标题
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        doc.setFontSize(16);
+        doc.text(`Player Analysis Report - ${dateStr}`, 20, 20);
+        
+        // 准备表格数据
+        const tableData = analysis.map((player, index) => [
+            index + 1,  // 序号
+            player.pinyinName,  // 拼音名字
+            player.skillLevel,  // 技术等级
+            player.experience,  // 球龄
+            player.attendance + '%',  // 出场率
+            player.age,  // 年龄
+            player.totalScore,  // 总评分
+            player.marketValue + ' Mio. €'  // 身价（百万欧元）
+        ]);
+        
+        // 设置表头
+        const headers = [
+            ['No.', 'Name', 'Level', 'Exp.', 'Attendance', 'Age', 'Score', 'Value']
+        ];
+        
+        // 生成表格
+        doc.autoTable({
+            head: headers,
+            body: tableData,
+            startY: 30,
+            styles: {
+                font: 'helvetica',
+                fontSize: 8
+            },
+            headStyles: {
+                fillColor: [76, 175, 80],
+                textColor: 255
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245]
+            },
+            columnStyles: {
+                0: {cellWidth: 15},   // No.
+                1: {cellWidth: 40},   // Name
+                2: {cellWidth: 15},   // Level
+                3: {cellWidth: 15},   // Exp.
+                4: {cellWidth: 25},   // Attendance
+                5: {cellWidth: 15},   // Age
+                6: {cellWidth: 20},   // Score
+                7: {cellWidth: 25}    // Market Value
+            }
+        });
+        
+        // 添加评分说明
+        const startY = doc.autoTable.previous.finalY + 10;
+        doc.setFontSize(10);
+        doc.text('Score Calculation:', 20, startY);
+        doc.text('- Technical Level (40%): Level × 10', 25, startY + 5);
+        doc.text('- Experience (30%): Years × 5 (max 100)', 25, startY + 10);
+        doc.text('- Attendance (20%): Attendance Rate', 25, startY + 15);
+        doc.text('- Age Factor (10%): Based on optimal age of 28', 25, startY + 20);
+        
+        // 添加身价计算说明
+        doc.text('Market Value Calculation:', 20, startY + 30);
+        doc.text('- Score < 40: 1 Mio. €', 25, startY + 35);
+        doc.text('- Score 40-49: 2 Mio. €', 25, startY + 40);
+        doc.text('- Score 50-60: 2 Mio. € + 1 Mio. € per point', 25, startY + 45);
+        doc.text('- Score 61-70: 12 Mio. € + 2 Mio. € per point', 25, startY + 50);
+        doc.text('- Score 71-80: 32 Mio. € + 3 Mio. € per point', 25, startY + 55);
+        doc.text('- Score 81-90: 62 Mio. € + 3 Mio. € per point', 25, startY + 60);
+        doc.text('- Score 91-100: 92 Mio. € + 4 Mio. € per point', 25, startY + 65);
+        
+        // 保存PDF
+        doc.save(`Player_Analysis_${dateStr}.pdf`);
+        
+    } catch (error) {
+        console.error('导出分析报告失败:', error);
+        alert('导出分析报告失败！\nExport der Analyse fehlgeschlagen!');
+    }
+});
