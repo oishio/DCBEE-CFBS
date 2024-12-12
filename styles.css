@@ -84,17 +84,18 @@ li {
 }
 
 .delete-btn {
-    background: #ff4444;
+    background: #dc3545;
     color: white;
     border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
+    padding: 4px 8px;
+    border-radius: 3px;
     cursor: pointer;
-    margin-left: 10px;
+    font-size: 12px;
+    transition: background-color 0.2s;
 }
 
 .delete-btn:hover {
-    background: #cc0000;
+    background: #c82333;
 }
 
 form input[type="tel"],
@@ -575,4 +576,13 @@ form input[type="number"] {
 .attendance-info span:last-child {
     font-weight: bold;
     margin-left: 5px;
+} 
+
+/* 管理员删除按钮样式 */
+.admin-delete-btn {
+    background: #007bff;  /* 使用不同的颜色区分管理员 */
+}
+
+.admin-delete-btn:hover {
+    background: #0056b3;
 } 

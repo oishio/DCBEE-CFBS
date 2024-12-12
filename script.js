@@ -62,6 +62,9 @@ const translations = {
     }
 };
 
+// 添加管理员列表
+const ADMIN_USERS = ['韩聪'];  // 可以添加更多管理员
+
 // 获取位置名称的中德双语显示
 function getPositionName(position) {
     const positionNames = {
@@ -185,13 +188,24 @@ async function updatePlayersList() {
             ${attendanceText}
         `;
         
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.textContent = translations.delete.zh + ' / ' + translations.delete.de;
-        deleteBtn.onclick = () => deletePlayer(player);
+        // 获取当前用户名（从输入框或者本地存储）
+        const currentUser = document.getElementById('playerName').value || localStorage.getItem('currentUser') || '';
+        const registeredBy = player.registeredBy || player.name || player.playerName;
+        
+        // 如果是管理员或报名者本人，显示删除按钮
+        if (ADMIN_USERS.includes(currentUser) || currentUser === registeredBy) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            // 为管理员添加特殊样式
+            if (ADMIN_USERS.includes(currentUser)) {
+                deleteBtn.classList.add('admin-delete-btn');
+            }
+            deleteBtn.textContent = translations.delete.zh + ' / ' + translations.delete.de;
+            deleteBtn.onclick = () => deletePlayer(player);
+            li.appendChild(deleteBtn);
+        }
         
         li.appendChild(playerInfo);
-        li.appendChild(deleteBtn);
         playersList.appendChild(li);
     });
 }
@@ -238,11 +252,32 @@ async function deletePlayer(player) {
     }
 
     try {
-        const historyKey = `${new Date(player.trainingDate).toDateString()}_${player.name || player.playerName}`;
-        await database.ref('signUpHistory').child(historyKey).remove();
+        // 检查是否是当前报名还是历史记录
+        const [playersSnapshot, historySnapshot] = await Promise.all([
+            database.ref('players').once('value'),
+            database.ref('signUpHistory').once('value')
+        ]);
+        
+        const playersData = playersSnapshot.val() || {};
+        const historyData = historySnapshot.val() || {};
+        
+        // 生成键名
+        const dateKey = `${new Date(player.trainingDate).toDateString()}_${player.name || player.playerName}`;
+        
+        // 检查并删除记录
+        if (Object.keys(playersData).includes(dateKey)) {
+            // 从当前报名中删除
+            await database.ref('players').child(dateKey).remove();
+        } else if (Object.keys(historyData).includes(dateKey)) {
+            // 从历史记录中删除
+            await database.ref('signUpHistory').child(dateKey).remove();
+        }
+        
         await loadPlayers();
+        alert('删除成功！\nErfolgreich gelöscht!');
     } catch (error) {
         console.error('Error deleting player:', error);
+        alert('删除失败，请重试！\nLöschen fehlgeschlagen, bitte erneut versuchen!');
     }
 }
 
@@ -700,7 +735,8 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         preferredFoot: document.getElementById('preferredFoot').value,
         skillLevel: document.getElementById('skillLevel').value,
         trainingDate: trainingDate,
-        signUpTime: new Date().toISOString()
+        signUpTime: new Date().toISOString(),
+        registeredBy: playerName  // 记录谁报的名
     };
 
     try {
@@ -987,4 +1023,10 @@ document.getElementById('analyzeBtn').addEventListener('click', async function()
         console.error('导出分析报告失败:', error);
         alert('导出分析报告失败！\nExport der Analyse fehlgeschlagen!');
     }
+});
+
+// 保存用户名到本地存储
+document.getElementById('playerName').addEventListener('change', function(e) {
+    localStorage.setItem('currentUser', e.target.value);
+    loadPlayers();  // 重新加载列表以更新删除按钮
 });
