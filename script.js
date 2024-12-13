@@ -1427,6 +1427,10 @@ function displayTeams(teams, substitutes, is6v6) {
     const teamsContainer = document.querySelector('.teams');
     teamsContainer.innerHTML = '';
 
+    // 创建分组结果的网格容器
+    const teamsGrid = document.createElement('div');
+    teamsGrid.className = 'teams-grid';
+
     // 显示每个队伍
     teams.forEach((team, index) => {
         const teamDiv = document.createElement('div');
@@ -1445,8 +1449,11 @@ function displayTeams(teams, substitutes, is6v6) {
                 `).join('')}
             </ul>
         `;
-        teamsContainer.appendChild(teamDiv);
+        teamsGrid.appendChild(teamDiv);
     });
+
+    // 将队伍网格添加到容器
+    teamsContainer.appendChild(teamsGrid);
 
     // 显示补位席
     if (substitutes.length > 0) {
