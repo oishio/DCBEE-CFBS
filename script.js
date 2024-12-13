@@ -155,83 +155,39 @@ async function loadPlayers() {
         updatePlayersList();
         displaySignUpHistory();
         
-        // 只有5人以上才进行分组
-        if (players.length > 5) {
-            // 获取当前选中的训练日期
-            const trainingDay = new Date(selectedDate).getDay();
-            const isSaturday = trainingDay === 6;
-            
-            // 检查人数上限
-            const maxPlayers = isSaturday ? 28 : 24;
-            if (players.length <= maxPlayers) {
-                // 确定队伍数量
-                let teamsCount;
-                if (isSaturday) {
-                    // 周六场地（最多28人）
-                    if (players.length <= 14) {  // 14人及以下分2队
-                        teamsCount = 2;
-                    } else if (players.length <= 21) {
-                        teamsCount = 3;  // 15-21人分3队
-                    } else {
-                        teamsCount = 4;  // 22-28人分4队
-                    }
+        // 获取当前选中的训练日期
+        const trainingDay = new Date(selectedDate).getDay();
+        const isSaturday = trainingDay === 6;
+        
+        // 检查人数上限
+        const maxPlayers = isSaturday ? 28 : 24;
+        if (players.length <= maxPlayers) {
+            // 确定队伍数量
+            let teamsCount;
+            if (isSaturday) {
+                // 周六场地（最多28人）
+                if (players.length <= 14) {  // 14人及以下分2队
+                    teamsCount = 2;
+                } else if (players.length <= 21) {
+                    teamsCount = 3;  // 15-21人分3队
                 } else {
-                    // 周三场地（最多24人）
-                    if (players.length <= 12) {  // 1-12人固定分2队
-                        teamsCount = 2;
-                    } else if (players.length <= 13) {
-                        teamsCount = 2;  // 13人分2队（6人一队，1人补位）
-                    } else if (players.length <= 19) {
-                        teamsCount = 3;  // 14-19人分3队
-                    } else {
-                        teamsCount = 4;  // 20-24人固定4队
-                    }
+                    teamsCount = 4;  // 22-28人分4队
                 }
-                
-                // 计算每队的理想人数和补位人数
-                const totalPlayers = players.length;
-                const playersPerTeam = Math.floor(totalPlayers / teamsCount);
-                const remainingPlayers = totalPlayers % teamsCount;
-                
-                // 更新补位席逻辑
-                if (isSaturday) {
-                    // 周六：每队最多7人，超过的进补位席
-                    const maxPlayersPerTeam = 7;
-                    if (playersPerTeam > maxPlayersPerTeam) {
-                        const totalTeamPlayers = teamsCount * maxPlayersPerTeam;
-                        const toSubstitutes = totalPlayers - totalTeamPlayers;
-                        if (toSubstitutes > 0) {
-                            substitutes.push(...ratedPlayers.slice(-toSubstitutes));
-                        }
-                    }
+            } else {
+                // 周三场地（最多24人）
+                if (players.length <= 12) {  // 1-12人固定分2队
+                    teamsCount = 2;
+                } else if (players.length <= 13) {
+                    teamsCount = 2;  // 13人分2队（6人一队，1人补位）
+                } else if (players.length <= 19) {
+                    teamsCount = 3;  // 14-19人分3队
                 } else {
-                    // 周三：每队最多6人，超过的进补位席
-                    const maxPlayersPerTeam = 6;
-                    if (playersPerTeam > maxPlayersPerTeam) {
-                        const totalTeamPlayers = teamsCount * maxPlayersPerTeam;
-                        const toSubstitutes = totalPlayers - totalTeamPlayers;
-                        if (toSubstitutes > 0) {
-                            substitutes.push(...ratedPlayers.slice(-toSubstitutes));
-                        }
-                    }
+                    teamsCount = 4;  // 20-24人固定4队
                 }
-                
-                // 执行自动分组
-                autoGenerateTeams(teamsCount, isSaturday);
             }
-        } else {
-            // 清空分组显示
-            const teamsContainer = document.querySelector('.teams');
-            teamsContainer.innerHTML = '';
             
-            // 显示提示信息
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'team-message';
-            messageDiv.innerHTML = `
-                <p>需要至少6名球员才能进行分组。<br>
-                Mindestens 6 Spieler für die Teamerstellung erforderlich.</p>
-            `;
-            teamsContainer.appendChild(messageDiv);
+            // 执行自动分组
+            await autoGenerateTeams(teamsCount, isSaturday);
         }
     } catch (error) {
         console.error('Error loading data:', error);
@@ -604,7 +560,7 @@ function generateTrainingDates() {
     const dateSelect = document.getElementById('trainingDate');
     dateSelect.innerHTML = '<option value="">选择训练日期 / Trainingsdatum</option>';
     
-    // 获取当���时间
+    // 获取当前时间
     const now = new Date();
     now.setHours(0, 0, 0, 0);  // 设置为当天0点
     
@@ -1508,3 +1464,6 @@ function displayTeams(teams, substitutes, is6v6) {
         teamsContainer.appendChild(subsDiv);
     }
 }
+
+// 添加日期选择事件监听器
+document.getElementById('trainingDate').addEventListener('change', loadPlayers);

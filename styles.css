@@ -630,3 +630,17 @@ form input[type="number"] {
     margin: 0;
     line-height: 1.5;
 } 
+
+.teams-container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.teams-container h2 {
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+}
