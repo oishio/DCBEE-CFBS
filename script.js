@@ -409,7 +409,7 @@ async function displaySignUpHistory() {
 // 生成训练日期选项
 function generateTrainingDates() {
     const dateSelect = document.getElementById('trainingDate');
-    dateSelect.innerHTML = '<option value="">选择训练日期 / Trainingsdatum</option>';
+    dateSelect.innerHTML = '<option value="">选择��练日期 / Trainingsdatum</option>';
     
     // 获取当前时间
     const now = new Date();
@@ -850,7 +850,7 @@ document.getElementById('exportPDF').addEventListener('click', function() {
 // 球员评分分析
 async function analyzePlayerRatings() {
     try {
-        // 获取历史数据
+        // 取历史数据
         const historySnapshot = await database.ref('signUpHistory').once('value');
         const historyData = historySnapshot.val() || {};
         
@@ -1030,3 +1030,185 @@ document.getElementById('playerName').addEventListener('change', function(e) {
     localStorage.setItem('currentUser', e.target.value);
     loadPlayers();  // 重新加载列表以更新删除按钮
 });
+
+// 添加自动分组功能
+document.getElementById('generateTeams').addEventListener('click', async function() {
+    if (players.length < 5) {
+        alert(translations.minPlayersRequired.zh + '\n' + translations.minPlayersRequired.de);
+        return;
+    }
+
+    // 获取当前选中的训练日期
+    const selectedDate = document.getElementById('trainingDate').value;
+    const trainingDay = new Date(selectedDate).getDay();
+    const isSaturday = trainingDay === 6;
+    
+    // 检查人数上限
+    const maxPlayers = isSaturday ? 28 : 24;
+    if (players.length > maxPlayers) {
+        alert(`超出场地人数上限！最多${maxPlayers}人。\nMaximale Spieleranzahl (${maxPlayers}) überschritten!`);
+        return;
+    }
+
+    // 确定队伍数量
+    let teamsCount;
+    if (isSaturday) {
+        // 周六：5-7人一队，最多4队
+        if (players.length <= 20) {
+            teamsCount = Math.floor(players.length / 5);  // 5人一队
+        } else if (players.length <= 24) {
+            teamsCount = Math.floor(players.length / 6);  // 6人一队
+        } else {
+            teamsCount = 4;  // 7人一队或有补位
+        }
+    } else {
+        // 周三：5-6人一队，最多4队
+        if (players.length <= 20) {
+            teamsCount = Math.floor(players.length / 5);  // 5人一队
+        } else {
+            teamsCount = 4;  // 6人一队或有补位
+        }
+    }
+
+    // 限制最大队伍数为4
+    teamsCount = Math.min(teamsCount, 4);
+
+    try {
+        // 获取所有球员的出场率
+        const playersWithAttendance = await Promise.all(players.map(async player => {
+            const { attendanceRate } = await getPlayerLastRecord(player.name || player.playerName);
+            return { ...player, attendanceRate };
+        }));
+
+        // 计算每个球员的综合评分
+        const ratedPlayers = playersWithAttendance.map(player => ({
+            ...player,
+            rating: calculatePlayerRating(player)
+        }));
+
+        // 按位置分组
+        const positions = {
+            strikers: ratedPlayers.filter(p => p.position1.includes('striker')),
+            wingers: ratedPlayers.filter(p => p.position1.includes('winger')),
+            midfielders: ratedPlayers.filter(p => p.position1.includes('pivot') || p.position1.includes('midfielder')),
+            defenders: ratedPlayers.filter(p => p.position1.includes('defender')),
+            goalkeepers: ratedPlayers.filter(p => p.position1.includes('goalkeeper')),
+            sweepers: ratedPlayers.filter(p => p.position1.includes('sweeper'))
+        };
+
+        // 根据场地和人数决定分组模式
+        const playerPerTeam = Math.floor(players.length / teamsCount);
+        const is6Plus = playerPerTeam >= 6;
+
+        const teams = Array.from({ length: teamsCount }, () => []);
+        const substitutes = [];
+
+        // 分配守门员
+        distributePlayersByPosition(positions.goalkeepers, teams, 'goalkeeper');
+
+        if (is6Plus) {
+            // 6人制或7人制分组
+            distributePlayersByPosition(positions.sweepers, teams, 'sweeper');
+            distributePlayersByPosition(positions.defenders, teams, 'defender');
+            distributePlayersByPosition(positions.midfielders, teams, 'midfielder');
+            distributePlayersByPosition(positions.wingers, teams, 'winger');
+            distributePlayersByPosition(positions.strikers, teams, 'striker');
+        } else {
+            // 5人制分组
+            distributePlayersByPosition(positions.defenders, teams, 'defender');
+            distributePlayersByPosition(positions.midfielders, teams, 'pivot');
+            distributePlayersByPosition(positions.wingers.concat(positions.strikers), teams, 'attacker');
+        }
+
+        // 将剩余球员分配到补位席
+        const allAssignedPlayers = teams.flat();
+        const remainingPlayers = ratedPlayers.filter(player => 
+            !allAssignedPlayers.find(p => p.name === player.name)
+        );
+        substitutes.push(...remainingPlayers);
+
+        // 显示分组结果
+        displayTeams(teams, substitutes, is6Plus);
+
+    } catch (error) {
+        console.error('分组失败:', error);
+        alert('分组失败，请重试！\nTeamerstellung fehlgeschlagen, bitte erneut versuchen!');
+    }
+});
+
+// 计算球员评分
+function calculatePlayerRating(player) {
+    const skillWeight = 0.4;     // 技术等级权重
+    const expWeight = 0.3;       // 球龄权重
+    const attendWeight = 0.2;    // 出场率权重
+    const ageWeight = 0.1;       // 年龄权重
+
+    const skillScore = player.skillLevel * 10;
+    const expScore = Math.min(player.experience * 5, 100);
+    const attendScore = player.attendanceRate;
+    const ageScore = Math.max(0, 100 - Math.abs(28 - player.age) * 2);
+
+    return (
+        skillScore * skillWeight +
+        expScore * expWeight +
+        attendScore * attendWeight +
+        ageScore * ageWeight
+    );
+}
+
+// 按位置分配球员
+function distributePlayersByPosition(players, teams, position) {
+    // 按评分排序
+    const sortedPlayers = [...players].sort((a, b) => b.rating - a.rating);
+    
+    // 使用蛇形分配确保平衡
+    sortedPlayers.forEach((player, index) => {
+        const teamIndex = index % teams.length;
+        const reverseOrder = Math.floor(index / teams.length) % 2 === 1;
+        const actualTeamIndex = reverseOrder ? teams.length - 1 - teamIndex : teamIndex;
+        teams[actualTeamIndex].push({ ...player, assignedPosition: position });
+    });
+}
+
+// 显示分组结果
+function displayTeams(teams, substitutes, is6v6) {
+    const teamsContainer = document.querySelector('.teams');
+    teamsContainer.innerHTML = '';
+
+    // 显示每个队伍
+    teams.forEach((team, index) => {
+        const teamDiv = document.createElement('div');
+        teamDiv.className = 'team';
+        
+        // 计算队伍总评分
+        const teamRating = team.reduce((sum, player) => sum + player.rating, 0);
+        
+        teamDiv.innerHTML = `
+            <h3>${translations.team.zh} ${index + 1} / ${translations.team.de} ${index + 1}</h3>
+            <p>${translations.totalStrength.zh} / ${translations.totalStrength.de}: ${teamRating.toFixed(1)}</p>
+            <ul>
+                ${team.map(player => `
+                    <li>${player.name || player.playerName} (${getPinyinName(player.name || player.playerName)}) - 
+                        ${getPositionName(player.assignedPosition)} (${player.rating.toFixed(1)})</li>
+                `).join('')}
+            </ul>
+        `;
+        teamsContainer.appendChild(teamDiv);
+    });
+
+    // 显示补位席
+    if (substitutes.length > 0) {
+        const subsDiv = document.createElement('div');
+        subsDiv.className = 'team substitutes';
+        subsDiv.innerHTML = `
+            <h3>${translations.substitutes.zh} / ${translations.substitutes.de}</h3>
+            <ul>
+                ${substitutes.map(player => `
+                    <li>${player.name || player.playerName} (${getPinyinName(player.name || player.playerName)}) - 
+                        ${getPositionName(player.position1)} (${player.rating.toFixed(1)})</li>
+                `).join('')}
+            </ul>
+        `;
+        teamsContainer.appendChild(subsDiv);
+    }
+}

@@ -1,153 +1,89 @@
-import React, { useEffect, useState } from 'react';
-import { Table, message } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import firebase from 'firebase/app';
-import 'firebase/database';
+import React, { useState, useEffect } from 'react';
+import { database } from '../firebase';
 
-interface SignUpRecord {
-  id: string;
-  playerName: string;
-  trainingDate: string;
-  position1: string;
-  position2: string;
-  position3: string;
-  signUpTime: string;
-  status: string;
+interface PlayerRecord {
+    name: string;
+    playerName?: string;
+    trainingDate: string;
+    skillLevel: number;
+    age: number;
+    experience: number;
+    position1: string;
+    signUpTime: string;
+    lastUpdate?: string;
 }
 
-// 添加德语翻译映射
-const translations = {
-    history: {
-        zh: '报名历史记录',
-        de: 'Anmeldeverlauf'
-    },
-    totalPlayers: {
-        zh: '共',
-        de: 'Insgesamt'
-    },
-    registered: {
-        zh: '人报名',
-        de: 'Anmeldungen'
-    },
-    training: {
-        zh: '训练',
-        de: 'Training'
-    },
-    positions: {
-        'striker': {
-            zh: '前锋(ST)',
-            de: 'Stürmer(ST)'
-        },
-        'winger': {
-            zh: '边锋(LW/RW)',
-            de: 'Flügel(LW/RW)'
-        },
-        'pivot': {
-            zh: '中场(MF)',
-            de: 'Mittelfeld(MF)'
-        },
-        'defender': {
-            zh: '后卫(DF)',
-            de: 'Verteidiger(DF)'
-        },
-        'goalkeeper': {
-            zh: '守门员(GK)',
-            de: 'Torwart(GK)'
+export const SignUpHistory: React.FC = () => {
+    const [playerHistory, setPlayerHistory] = useState<PlayerRecord[]>([]);
+    
+    useEffect(() => {
+        loadPlayerHistory();
+    }, []);
+    
+    const loadPlayerHistory = async () => {
+        try {
+            const historySnapshot = await database.ref('signUpHistory').once('value');
+            const historyData = historySnapshot.val() || {};
+            
+            // 按球员分组并获取最新记录
+            const latestRecords = new Map<string, PlayerRecord>();
+            
+            Object.values(historyData).forEach((record: PlayerRecord) => {
+                const playerName = record.name || record.playerName;
+                const existingRecord = latestRecords.get(playerName);
+                
+                if (!existingRecord || new Date(record.signUpTime) > new Date(existingRecord.signUpTime)) {
+                    latestRecords.set(playerName, {
+                        ...record,
+                        lastUpdate: record.signUpTime
+                    });
+                }
+            });
+            
+            setPlayerHistory(Array.from(latestRecords.values()));
+        } catch (error) {
+            console.error('加载历史记录失败:', error);
         }
-    }
-};
-
-// 修改显示函数
-function formatDate(date: Date): string {
-    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日${translations.training.zh} / ` +
-           `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()} ${translations.training.de}`;
-}
-
-function formatPlayerCount(count: number): string {
-    return `${translations.totalPlayers.zh} ${count} ${translations.registered.zh} / ` +
-           `${translations.totalPlayers.de} ${count} ${translations.registered.de}`;
-}
-
-function getPositionName(pos: string): string {
-    const position = translations.positions[pos];
-    return position ? `${position.zh} / ${position.de}` : pos;
-}
-
-const SignUpHistory: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<SignUpRecord[]>([]);
-
-  useEffect(() => {
-    const fetchHistory = async () => {
-      setLoading(true);
-      try {
-        const historyRef = firebase.database().ref('signUpHistory');
-        const snapshot = await historyRef.once('value');
-        const historyData = snapshot.val();
-        
-        const formattedData = Object.entries(historyData || {}).map(([id, record]: [string, any]) => ({
-          id,
-          ...record,
-          // 格式化日期显示
-          signUpTime: new Date(record.signUpTime).toLocaleString('zh-CN'),
-        }));
-        
-        setData(formattedData);
-      } catch (error) {
-        message.error('获取历史记录失败');
-      } finally {
-        setLoading(false);
-      }
     };
-
-    fetchHistory();
-  }, []);
-
-  const columns: ColumnsType<SignUpRecord> = [
-    {
-      title: '姓名',
-      dataIndex: 'playerName',
-      key: 'playerName',
-    },
-    {
-      title: '训练日期',
-      dataIndex: 'trainingDate',
-      key: 'trainingDate',
-    },
-    {
-      title: '首选位置',
-      dataIndex: 'position1',
-      key: 'position1',
-    },
-    {
-      title: '次选位置',
-      dataIndex: 'position2',
-      key: 'position2',
-    },
-    {
-      title: '报名时间',
-      dataIndex: 'signUpTime',
-      key: 'signUpTime',
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-    }
-  ];
-
-  return (
-    <div className="history-section">
-      <h2>{translations.history.zh} / {translations.history.de}</h2>
-      <Table 
-        columns={columns} 
-        dataSource={data} 
-        rowKey="id" 
-        loading={loading}
-        pagination={{ pageSize: 10 }}
-      />
-    </div>
-  );
-};
-
-export default SignUpHistory; 
+    
+    const formatLastUpdate = (date: string) => {
+        const updateDate = new Date(date);
+        return updateDate.toLocaleDateString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    };
+    
+    return (
+        <div className="player-history">
+            <h3>球员数据记录 / Spielerdaten</h3>
+            <div className="history-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>姓名 / Name</th>
+                            <th>技术等级 / Level</th>
+                            <th>年龄 / Alter</th>
+                            <th>球龄 / Erfahrung</th>
+                            <th>位置 / Position</th>
+                            <th>最后更新 / Letzte Aktualisierung</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {playerHistory.map((record, index) => (
+                            <tr key={index}>
+                                <td>{record.name || record.playerName}</td>
+                                <td>{record.skillLevel}</td>
+                                <td>{record.age}</td>
+                                <td>{record.experience}</td>
+                                <td>{record.position1}</td>
+                                <td>{formatLastUpdate(record.lastUpdate || record.signUpTime)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}; 
