@@ -1177,11 +1177,21 @@ document.getElementById('analyzeBtn').addEventListener('click', async function()
 // 保存用户名到本地存储
 document.getElementById('playerName').addEventListener('change', function(e) {
     localStorage.setItem('currentUser', e.target.value);
+    // 检查是否为管理员，显示或隐藏分组选项
+    const generateTeamsSelect = document.getElementById('generateTeams');
+    if (e.target.value === '韩聪') {
+        generateTeamsSelect.style.display = 'block';
+    } else {
+        generateTeamsSelect.style.display = 'none';
+    }
     loadPlayers();  // 重新加载列表以更新删除按钮
 });
 
-// 添加自动分组功能
-document.getElementById('generateTeams').addEventListener('click', async function() {
+// 修改自动分组事件监听
+document.getElementById('generateTeams').addEventListener('change', async function(e) {
+    const selectedMode = e.target.value;
+    if (!selectedMode) return;  // 如果选择了默认选项，不执行分组
+
     if (players.length < 5) {
         alert(translations.minPlayersRequired.zh + '\n' + translations.minPlayersRequired.de);
         return;
@@ -1199,57 +1209,14 @@ document.getElementById('generateTeams').addEventListener('click', async functio
         return;
     }
 
-    // 确定队伍数量
-    let teamsCount;
-    if (isSaturday) {
-        // 周六场地（最多28人）
-        if (players.length <= 14) {  // 14人及以下分2队
-            teamsCount = 2;
-        } else if (players.length <= 21) {
-            teamsCount = 3;  // 15-21人分3队
-        } else {
-            teamsCount = 4;  // 22-28人分4队
-        }
-    } else {
-        // 周三场地（最多24人）
-        if (players.length <= 12) {  // 1-12人固定分2队
-            teamsCount = 2;
-        } else if (players.length <= 13) {
-            teamsCount = 2;  // 13人分2队（6人一队，1人补位）
-        } else if (players.length <= 19) {
-            teamsCount = 3;  // 14-19人分3队
-        } else {
-            teamsCount = 4;  // 20-24人固定4队
-        }
-    }
-
-    // 计算每队的理想人数和补位人数
-    const totalPlayers = players.length;
-    const playersPerTeam = Math.floor(totalPlayers / teamsCount);
-    const remainingPlayers = totalPlayers % teamsCount;
+    // 根据选择的模式确定每队人数和队伍数量
+    const playersPerTeam = parseInt(selectedMode);
+    let teamsCount = Math.floor(players.length / playersPerTeam);
     
-    // 更新补位席逻辑
-    if (isSaturday) {
-        // 周六：每队最多7人，超过的进补位席
-        const maxPlayersPerTeam = 7;
-        if (playersPerTeam > maxPlayersPerTeam) {
-            const totalTeamPlayers = teamsCount * maxPlayersPerTeam;
-            const toSubstitutes = totalPlayers - totalTeamPlayers;
-            if (toSubstitutes > 0) {
-                substitutes.push(...ratedPlayers.slice(-toSubstitutes));
-            }
-        }
-    } else {
-        // 周三：每队最多6人，超过的进补位席
-        const maxPlayersPerTeam = 6;
-        if (playersPerTeam > maxPlayersPerTeam) {
-            const totalTeamPlayers = teamsCount * maxPlayersPerTeam;
-            const toSubstitutes = totalPlayers - totalTeamPlayers;
-            if (toSubstitutes > 0) {
-                substitutes.push(...ratedPlayers.slice(-toSubstitutes));
-            }
-        }
-    }
+    // 限制最大队伍数为4
+    teamsCount = Math.min(teamsCount, 4);
+    // 确保至少有2队
+    teamsCount = Math.max(teamsCount, 2);
 
     try {
         // 获取所有球员的出场率

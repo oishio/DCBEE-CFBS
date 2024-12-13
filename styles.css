@@ -62,11 +62,29 @@ button:hover {
 }
 
 .generate-btn {
-    display: block;
-    width: 100%;
-    margin: 20px 0;
+    background: #4CAF50;
+    color: white;
     padding: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 20px 0;
     font-size: 16px;
+    transition: background-color 0.3s;
+    width: 100%;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    text-align-last: center;
+}
+
+.generate-btn:hover {
+    background: #45a049;
+}
+
+.generate-btn option {
+    background: white;
+    color: #333;
+    padding: 10px;
 }
 
 .team {

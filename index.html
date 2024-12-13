@@ -148,10 +148,15 @@
             <ul id="playersList"></ul>
         </div>
 
-        <div id="generateTeams" class="generate-btn">自动分队 / Teams automatisch erstellen</div>
+        <select id="generateTeams" class="generate-btn" style="display: none;">
+            <option value="">自动分队 / Teams automatisch erstellen</option>
+            <option value="5">5人制 / 5er Teams</option>
+            <option value="6">6人制 / 6er Teams</option>
+            <option value="7">7人制 / 7er Teams</option>
+        </select>
 
         <div class="teams-container">
-            <h2>球队分组 / Teamaufteilung</h2>
+            <h2>自动分组 / Automatische Teamerstellung</h2>
             <div class="teams">
                 <!-- 分组结果将在这里显示 -->
             </div>
