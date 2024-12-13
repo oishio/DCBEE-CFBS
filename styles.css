@@ -119,9 +119,11 @@ form input[type="number"] {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
-    background: transparent;
-    box-shadow: none;
-    padding: 0;
+    background: #f8f9fa;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .team {
@@ -129,18 +131,60 @@ form input[type="number"] {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
 }
 
 .team h3 {
     color: #333;
     margin-bottom: 10px;
+    font-size: 1.2em;
 }
 
 .team p {
     color: #666;
     margin-bottom: 10px;
     font-size: 0.9em;
-} 
+}
+
+.team ul {
+    list-style: none;
+    padding: 0;
+}
+
+.team li {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.team li:last-child {
+    border-bottom: none;
+}
+
+.team.substitutes {
+    background: #fff3cd;
+    border: 2px dashed #ffc107;
+}
+
+.team.substitutes h3 {
+    color: #856404;
+}
+
+.generate-btn {
+    background: #4CAF50;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    margin: 20px 0;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.generate-btn:hover {
+    background: #45a049;
+}
 
 .positions-container {
     margin-bottom: 15px;
@@ -307,21 +351,6 @@ form input[type="number"] {
 .date-select select:focus {
     outline: none;
     border-color: #4CAF50;
-} 
-
-/* 添加补位席样式 */
-.team.substitutes {
-    background-color: #f8f9fa;
-    border: 2px dashed #dc3545;
-    margin-top: 20px;
-}
-
-.team.substitutes h3 {
-    color: #dc3545;
-}
-
-.team.substitutes ul li {
-    border-bottom: 1px dashed #dc3545;
 } 
 
 .history-container {
@@ -585,4 +614,19 @@ form input[type="number"] {
 
 .admin-delete-btn:hover {
     background: #0056b3;
+} 
+
+.team-message {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.team-message p {
+    margin: 0;
+    line-height: 1.5;
 } 
