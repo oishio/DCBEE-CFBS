@@ -413,10 +413,6 @@ async function deletePlayer(player) {
     }
 
     try {
-        // 确保日期格式一致
-        const trainingDate = new Date(player.trainingDate);
-        const dateKey = `${trainingDate.toDateString()}_${player.name || player.playerName}`;
-        
         // 从当前报名中删除
         const playersRef = database.ref('players');
         const snapshot = await playersRef.once('value');
@@ -425,21 +421,65 @@ async function deletePlayer(player) {
         // 查找并删除匹配的记录
         const keysToDelete = Object.keys(allPlayers).filter(key => {
             const record = allPlayers[key];
-            return record.name === player.name && 
-                   new Date(record.trainingDate).toDateString() === trainingDate.toDateString();
+            return record.name === (player.name || player.playerName) && 
+                   record.trainingDate === player.trainingDate;
         });
+        
+        console.log('要删除的记录:', keysToDelete);  // 调试信息
         
         // 删除所有匹配的记录
         await Promise.all(keysToDelete.map(key => 
             playersRef.child(key).remove()
         ));
         
-        // 重新加载所有数据以确保同步
-        await loadPlayers();
+        // 从本地数组中移除被删除的球员
+        players = players.filter(p => 
+            p.name !== (player.name || player.playerName) || 
+            p.trainingDate !== player.trainingDate
+        );
+        
+        // 更新显示
+        await updatePlayersList();
+        
+        // 如果有足够的球员，重新进行分组
+        const selectedDate = document.getElementById('trainingDate').value;
+        const trainingDay = new Date(selectedDate).getDay();
+        const isSaturday = trainingDay === 6;
+        
+        if (players.length > 5) {
+            // 确定队伍数量
+            let teamsCount;
+            if (isSaturday) {
+                if (players.length < 10) {
+                    teamsCount = 2;
+                } else if (players.length <= 20) {
+                    teamsCount = Math.floor(players.length / 5);
+                } else if (players.length <= 24) {
+                    teamsCount = Math.floor(players.length / 6);
+                } else {
+                    teamsCount = 4;
+                }
+            } else {
+                if (players.length < 10) {
+                    teamsCount = 2;
+                } else if (players.length <= 20) {
+                    teamsCount = Math.floor(players.length / 5);
+                } else {
+                    teamsCount = 4;
+                }
+            }
+            teamsCount = Math.min(teamsCount, 4);
+            await autoGenerateTeams(teamsCount, isSaturday);
+        } else {
+            // 清空分组显示
+            const teamsContainer = document.querySelector('.teams');
+            teamsContainer.innerHTML = '';
+        }
         
         alert('取消报名成功！\nAbmeldung erfolgreich!');
     } catch (error) {
         console.error('Error deleting player:', error);
+        console.error('Error details:', error.message);  // 添加详细错误信息
         alert('取消报名失败，请重试！\nAbmeldung fehlgeschlagen, bitte erneut versuchen!');
     }
 }
@@ -470,7 +510,7 @@ async function displaySignUpHistory() {
         for (const [key, record] of Object.entries(historyData)) {
             if (!record || !record.trainingDate) continue;
             
-            // 检查是否是过去的训���
+            // 检查是否是过去的训练
             const trainingDate = new Date(record.trainingDate);
             if (trainingDate >= now) continue;  // 跳过未来的训练
             
@@ -596,7 +636,7 @@ function generateTrainingDates() {
         { date: '2025-02-12', displayDate: '2025年2月12日', displayDateDE: '12.02.2025', time: '20:00' },  // 周三
         { date: '2025-02-15', displayDate: '2025年2月15日', displayDateDE: '15.02.2025', time: '18:00' },  // 周六
         { date: '2025-02-19', displayDate: '2025年2月19日', displayDateDE: '19.02.2025', time: '20:00' },  // 周三
-        { date: '2025-02-22', displayDate: '2025年2月22日', displayDateDE: '22.02.2025', time: '18:00' },  // 周六
+        { date: '2025-02-22', displayDate: '2025年2月22日', displayDateDE: '22.02.2025', time: '18:00' },  // 周��
         { date: '2025-02-26', displayDate: '2025年2月26日', displayDateDE: '26.02.2025', time: '20:00' }   // 周三
     ];
     
@@ -700,7 +740,7 @@ async function importHistoricalData() {
             if (Object.keys(dec11Records).length > 0) {
                 // 将数据保存到历史记录中
                 await historyRef.update(dec11Records);
-                console.log('历史数据导入成功');
+                console.log('历史数据入成功');
             }
         }
         
@@ -731,7 +771,7 @@ document.getElementById('trainingDate').addEventListener('change', function(e) {
 // 从历史记录中获取球员最近的报名信息
 async function getPlayerLastRecord(name) {
     try {
-        // 获取所有历史记录
+        // 获取所有数据源
         const [playersSnapshot, historySnapshot] = await Promise.all([
             database.ref('players').once('value'),
             database.ref('signUpHistory').once('value')
@@ -740,44 +780,45 @@ async function getPlayerLastRecord(name) {
         const playersData = playersSnapshot.val() || {};
         const historyData = historySnapshot.val() || {};
         
-        // 合并数据
-        const allRecords = {
-            ...historyData,
-            ...playersData
-        };
+        // 合并所有记录
+        const allRecords = [
+            ...Object.values(playersData),
+            ...Object.values(historyData)
+        ].filter(record => record.name === name || record.playerName === name);
         
-        // 获取所有训练记录并按日期排序
-        const allTrainings = Object.values(allRecords)
-            .filter(record => record.name === name || record.playerName === name)
-            .map(record => ({
-                ...record,
-                // 限制技术等级在5-8之间
-                skillLevel: Math.min(8, Math.max(5, parseInt(record.skillLevel) || 5))
-            }))
-            .sort((a, b) => new Date(b.trainingDate) - new Date(a.trainingDate));
+        // 按日期排序，确保获取最新的记录
+        allRecords.sort((a, b) => {
+            const dateA = new Date(a.trainingDate);
+            const dateB = new Date(b.trainingDate);
+            return dateB - dateA;  // 降序排序，最新的在前
+        });
         
-        // 获取过去的所有训练日期
-        const pastTrainings = Object.values(allRecords)
+        console.log('找到的历史记录:', allRecords);
+        
+        // 获取过去的所有训练日期（用于计算出场率）
+        const pastTrainings = Object.values({...playersData, ...historyData})
             .filter(record => new Date(record.trainingDate) <= new Date())
             .map(record => record.trainingDate)
-            .filter((date, index, self) => self.indexOf(date) === index)  // 去重
+            .filter((date, index, self) => self.indexOf(date) === index)
             .sort((a, b) => new Date(b) - new Date(a))
             .slice(0, 10);  // 最多取最近10场
         
-        // 计算该球员在这些训练中的出场次数
+        // 计算出场率
         const playerAttendance = pastTrainings.filter(date => 
-            allTrainings.some(record => record.trainingDate === date)
+            allRecords.some(record => record.trainingDate === date)
         ).length;
         
-        // 计算出场率
         const totalGames = pastTrainings.length;
         const attendanceRate = totalGames > 0 
             ? Math.round((playerAttendance / totalGames) * 100)
             : 0;
         
-        // 返回最近的记录和出场率
+        // 返回最新的记录和出场率
+        const lastRecord = allRecords[0] || null;  // 取排序后的第一条记录
+        console.log('使用的最新记录:', lastRecord);
+        
         return {
-            lastRecord: allTrainings[0] || null,
+            lastRecord,
             attendanceRate
         };
     } catch (error) {
@@ -790,6 +831,8 @@ async function getPlayerLastRecord(name) {
 function autoFillForm(record, attendanceRate) {
     if (!record) return;
     
+    console.log('正在填充最近的报名记录:', record);
+    
     // 填充位置信息
     document.getElementById('position1').value = record.position1 || record.positions?.[0] || '';
     document.getElementById('position2').value = record.position2 || record.positions?.[1] || '';
@@ -799,7 +842,6 @@ function autoFillForm(record, attendanceRate) {
     document.getElementById('age').value = record.age || '';
     document.getElementById('experience').value = record.experience || '';
     document.getElementById('preferredFoot').value = record.preferredFoot || '';
-    // 确保技术等级最低为5
     document.getElementById('skillLevel').value = Math.max(5, parseInt(record.skillLevel) || 5);
     
     // 显示出场率
@@ -1081,7 +1123,7 @@ async function analyzePlayerRatings() {
             ...playersData
         };
         
-        // 获取所有球员的最新记录
+        // 获���所有球员的最新记录
         const playerMap = new Map();
         Object.values(allRecords).forEach(player => {
             const playerName = player.name || player.playerName;
@@ -1103,7 +1145,7 @@ async function analyzePlayerRatings() {
             // 计算综合评分
             const skillWeight = 0.2;     // 技术等级权重
             const expWeight = 0.2;       // 球龄权重
-            const attendWeight = 0.2;    // 出场��权重
+            const attendWeight = 0.2;    // 出场率权重
             const ageWeight = 0.2;       // 年龄权重
             const footWeight = 0.2;      // 惯用脚权重
 
@@ -1325,7 +1367,7 @@ document.getElementById('generateTeams').addEventListener('change', async functi
             sweepers: ratedPlayers.filter(p => p.position1 && p.position1.includes('sweeper'))
         };
 
-        // 如果没有守门员，将其他位置的球员分配为守门员
+        // 如果没有守门员，将其他位置的球员分配为��门员
         if (positions.goalkeepers.length === 0) {
             // 优先选择防守位置的球员
             const potentialGoalkeepers = [
@@ -1450,7 +1492,7 @@ function distributePlayersByPosition(players, teams, position) {
     
     // 分配球员
     unassignedPlayers.forEach(player => {
-        // 检查该球员是否已���被分配
+        // 检查该球员是否已分配
         const isAlreadyAssigned = teams.some(team => 
             team.some(p => p.name === player.name)
         );
@@ -1472,7 +1514,7 @@ function distributePlayersByPosition(players, teams, position) {
             }
         });
         
-        // 将球员分配给评分最低的队伍
+        // 将球员分配给评分最低的队��
         const teamIndex = teams.indexOf(minRatingTeam);
         teams[teamIndex].push({ ...player, assignedPosition: position });
     });
