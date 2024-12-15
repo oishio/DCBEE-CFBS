@@ -340,7 +340,7 @@ async function updatePlayersList() {
         const playerInfo = document.createElement('div');
         playerInfo.className = 'player-info';
         
-        // 添���出场率信息
+        // 添加出场率信息
         const attendanceText = `(${player.attendanceRate}%)`;
         // 获取拼音名字
         const pinyinName = getPinyinName(player.name || player.playerName);
@@ -547,7 +547,7 @@ async function displaySignUpHistory() {
         // 保存历史数据到全局变量，供导出功能使用
         window.historyData = groupedHistory;
 
-        // ���新导出日期选择器
+        // 更新导出日期选择器
         updateExportDateSelect(sortedDates);
     } catch (error) {
         console.error('获取历史记录失败:', error);
@@ -571,7 +571,7 @@ function generateTrainingDates() {
         { date: '2024-12-18', displayDate: '2024年12月18日', displayDateDE: '18.12.2024', time: '20:00' }, // 周三
         { date: '2025-01-08', displayDate: '2025年1月8日', displayDateDE: '08.01.2025', time: '20:00' },   // 周三
         { date: '2025-01-11', displayDate: '2025年1月11日', displayDateDE: '11.01.2025', time: '18:00' },  // 周六
-        { date: '2025-01-15', displayDate: '2025年1月15���', displayDateDE: '15.01.2025', time: '20:00' },  // 周三
+        { date: '2025-01-15', displayDate: '2025年1月15日', displayDateDE: '15.01.2025', time: '20:00' },  // 周三
         { date: '2025-01-18', displayDate: '2025年1月18日', displayDateDE: '18.01.2025', time: '18:00' },  // 周六
         { date: '2025-01-22', displayDate: '2025年1月22日', displayDateDE: '22.01.2025', time: '20:00' },  // 周三
         { date: '2025-01-25', displayDate: '2025年1月25日', displayDateDE: '25.01.2025', time: '18:00' },  // 周六
@@ -826,7 +826,7 @@ document.getElementById('playerName').addEventListener('input', async function(e
     }
 });
 
-// 在分组锁定后将数据移动���历史记录
+// 在分组锁定后将数据移动到历史记录
 async function moveToHistory() {
     try {
         const now = new Date();
@@ -931,7 +931,7 @@ document.getElementById('playerForm').addEventListener('submit', async function(
 // PDF导出功能
 async function exportToPDF(date) {
     try {
-        // 获��选中日期的球员数据
+        // 获取选中日期的球员数据
         const historySnapshot = await database.ref('signUpHistory').once('value');
         const historyData = historySnapshot.val() || {};
         
@@ -1027,24 +1027,30 @@ document.getElementById('exportPDF').addEventListener('click', function() {
 // 员评分分析
 async function analyzePlayerRatings() {
     try {
-        // 取历史数据
-        const historySnapshot = await database.ref('signUpHistory').once('value');
+        // 获取所有数据（包括当前报名和历史记录）
+        const [playersSnapshot, historySnapshot] = await Promise.all([
+            database.ref('players').once('value'),
+            database.ref('signUpHistory').once('value')
+        ]);
+        
+        const playersData = playersSnapshot.val() || {};
         const historyData = historySnapshot.val() || {};
+        
+        // 合并数据，当前报名数据优先
+        const allRecords = {
+            ...historyData,
+            ...playersData
+        };
         
         // 获取所有球员的最新记录
         const playerMap = new Map();
-        Object.values(historyData).forEach(player => {
+        Object.values(allRecords).forEach(player => {
             const playerName = player.name || player.playerName;
             const existingPlayer = playerMap.get(playerName);
             
             // 如果没有该球员的记录，或者这是更新的记录，则更新Map
             if (!existingPlayer || new Date(player.trainingDate) > new Date(existingPlayer.trainingDate)) {
-                // 确保技术等级在5-8之间
-                const updatedPlayer = {
-                    ...player,
-                    skillLevel: Math.min(8, Math.max(5, parseInt(player.skillLevel) || 5))
-                };
-                playerMap.set(playerName, updatedPlayer);
+                playerMap.set(playerName, player);
             }
         });
         
@@ -1209,7 +1215,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async function()
         
     } catch (error) {
         console.error('导出分析报告失败:', error);
-        alert('导出分析报告失败！\nExport der Analyse fehlgeschlagen!');
+        alert('���出分析报告失败！\nExport der Analyse fehlgeschlagen!');
     }
 });
 
@@ -1397,7 +1403,7 @@ function distributePlayersByPosition(players, teams, position) {
         !teams.some(team => team.some(p => p.name === player.name))
     );
     
-    // 如果没有未分配的球员，直接回
+    // 如果没有未分配的球员，直接返回
     if (unassignedPlayers.length === 0) return;
     
     // 计算每个队伍的当前评分
@@ -1438,7 +1444,7 @@ function displayTeams(teams, substitutes, is6v6) {
     const teamsContainer = document.querySelector('.teams');
     teamsContainer.innerHTML = '';
 
-    // 创建分组结果的网格容器
+    // 创��分组结果的网格容器
     const teamsGrid = document.createElement('div');
     teamsGrid.className = 'teams-grid';
 
