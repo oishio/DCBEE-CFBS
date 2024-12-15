@@ -340,7 +340,7 @@ async function updatePlayersList() {
         const playerInfo = document.createElement('div');
         playerInfo.className = 'player-info';
         
-        // 添���出场率信息
+        // 添加出场率信息
         const attendanceText = `(${player.attendanceRate}%)`;
         // 获取拼音名字
         const pinyinName = getPinyinName(player.name || player.playerName);
@@ -678,7 +678,7 @@ async function importHistoricalData() {
             const playersSnapshot = await playersRef.once('value');
             const playersData = playersSnapshot.val() || {};
   
-            // 过滤��� 12 月 11 日的记录
+            // 过滤 12 月 11 日的记录
             const dec11Records = Object.entries(playersData)
                 .filter(([_, record]) => record.trainingDate === '2023-12-11')
                 .reduce((acc, [key, value]) => ({...acc, [key]: value}), {});
@@ -735,6 +735,10 @@ async function getPlayerLastRecord(name) {
         // 获取所有训练记录
         const allTrainings = Object.values(allRecords)
             .filter(record => record.name === name || record.playerName === name)
+            .map(record => ({
+                ...record,
+                skillLevel: Math.max(5, parseInt(record.skillLevel) || 5)
+            }))
             .sort((a, b) => new Date(b.trainingDate) - new Date(a.trainingDate));
         
         // 获取过去的所有训练日期
@@ -796,7 +800,7 @@ function autoFillForm(record, attendanceRate) {
 document.getElementById('playerName').addEventListener('input', async function(e) {
     const name = e.target.value;
     if (!name) {
-        // 当姓名被清除时，重置所有表单字段
+        // 当姓名被清除时，重置所有表单��段
         document.getElementById('position1').value = '';
         document.getElementById('position2').value = '';
         document.getElementById('position3').value = '';
@@ -1013,7 +1017,7 @@ async function exportToPDF(date) {
 document.getElementById('exportPDF').addEventListener('click', function() {
     const selectedDate = document.getElementById('exportDate').value;
     if (!selectedDate) {
-        alert('请选择导出日期！\nBitte wählen Sie ein Datum aus!');
+        alert('���选择导出日期！\nBitte wählen Sie ein Datum aus!');
         return;
     }
     exportToPDF(selectedDate);
@@ -1034,7 +1038,12 @@ async function analyzePlayerRatings() {
             
             // 如果没有该球员的记录，或者这是更新的记录，则更新Map
             if (!existingPlayer || new Date(player.trainingDate) > new Date(existingPlayer.trainingDate)) {
-                playerMap.set(playerName, player);
+                // 确保技术等级最低为5
+                const updatedPlayer = {
+                    ...player,
+                    skillLevel: Math.max(5, parseInt(player.skillLevel) || 5)
+                };
+                playerMap.set(playerName, updatedPlayer);
             }
         });
         
@@ -1357,7 +1366,7 @@ function calculatePlayerRating(player) {
     const skillWeight = 0.2;     // 技术等级权重
     const expWeight = 0.2;       // 球龄权重
     const attendWeight = 0.2;    // 出场率权重
-    const ageWeight = 0.2;       // 年龄权��
+    const ageWeight = 0.2;       // 年龄权重
     const footWeight = 0.2;      // 惯用脚权重
 
     // 确保技术等级最低为5
@@ -1387,7 +1396,7 @@ function distributePlayersByPosition(players, teams, position) {
         !teams.some(team => team.some(p => p.name === player.name))
     );
     
-    // 如果没有未分配的球员，直接返回
+    // 如果没有未分配的球员，直接���回
     if (unassignedPlayers.length === 0) return;
     
     // 计算每个队伍的当前评分
