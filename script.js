@@ -706,7 +706,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // 设置定时器
 setInterval(checkRegistrationStatus, 60000);  // 每分钟检查一次状态
-setInterval(loadPlayers, 10000);  // 每10秒刷新一次
+setInterval(loadPlayers, 30000);  // 每30秒刷新一次
 setInterval(moveToHistory, 60000);  // 每分钟检查是否需要移动到历史记录
 
 // 1. 添加日期选择事件监听
@@ -794,7 +794,24 @@ function autoFillForm(record, attendanceRate) {
 // 4. 姓名输入事件
 document.getElementById('playerName').addEventListener('input', async function(e) {
     const name = e.target.value;
-    if (!name) return;
+    if (!name) {
+        // 当姓名被清除时，重置所有表单字段
+        document.getElementById('position1').value = '';
+        document.getElementById('position2').value = '';
+        document.getElementById('position3').value = '';
+        document.getElementById('age').value = '';
+        document.getElementById('experience').value = '';
+        document.getElementById('preferredFoot').value = '';
+        document.getElementById('skillLevel').value = '';
+        
+        // 重置出场率显示
+        const attendanceValue = document.getElementById('attendanceValue');
+        if (attendanceValue) {
+            attendanceValue.textContent = '0%';
+            attendanceValue.style.color = '#dc3545';
+        }
+        return;
+    }
     
     // 获取并填充历史记录
     const { lastRecord, attendanceRate } = await getPlayerLastRecord(name);
@@ -930,14 +947,14 @@ async function exportToPDF(date) {
         doc.setFontSize(16);
         doc.text(`Training Registration - ${dateStr}`, 20, 20);
         
-        // 准备表格数据
+        // 准备表格���据
         const tableData = await Promise.all(players.map(async (player, index) => {
             // 获取出场率
             const { attendanceRate } = await getPlayerLastRecord(player.name || player.playerName);
             return [
                 index + 1,  // 添加序号
                 getPinyinName(player.name || player.playerName),  // 只显示拼音名字
-                attendanceRate + '%',  // 显示出场率
+                attendanceRate + '%',  // 显示出率
                 player.skillLevel,
                 player.age,
                 player.experience,
@@ -1023,21 +1040,25 @@ async function analyzePlayerRatings() {
             const { attendanceRate } = await getPlayerLastRecord(player.name || player.playerName);
             
             // 计算综合评分
-            const skillWeight = 0.4;     // 技术等级权重
-            const expWeight = 0.3;       // 球龄权重
+            const skillWeight = 0.2;     // 技术等级权重
+            const expWeight = 0.2;       // 球龄权重
             const attendWeight = 0.2;    // 出场率权重
-            const ageWeight = 0.1;       // 年龄权重
-            
+            const ageWeight = 0.2;       // 年龄权重
+            const footWeight = 0.2;      // 惯用脚权重
+
             const skillScore = player.skillLevel * 10;  // 技术等级得分
-            const expScore = Math.min(player.experience * 5, 100);  // 球龄得分，上限100
+            const expScore = Math.min(70 + player.experience * 2, 100);  // 基础70分，每年加2分，上限100
             const attendScore = attendanceRate;  // 出场率得分
             const ageScore = Math.max(0, 100 - Math.abs(28 - player.age) * 2);  // 年龄得分，以28岁为最佳
-            
+            // 计算惯用脚得分
+            const footScore = player.preferredFoot === 'both' ? 100 : 50;  // 双脚100分，单脚50分
+
             const totalScore = (
                 skillScore * skillWeight +
                 expScore * expWeight +
                 attendScore * attendWeight +
-                ageScore * ageWeight
+                ageScore * ageWeight +
+                footScore * footWeight
             ).toFixed(1);
             
             // 计算身价
@@ -1150,10 +1171,11 @@ document.getElementById('analyzeBtn').addEventListener('click', async function()
         const startY = doc.autoTable.previous.finalY + 10;
         doc.setFontSize(10);
         doc.text('Score Calculation:', 20, startY);
-        doc.text('- Technical Level (40%): Level × 10', 25, startY + 5);
-        doc.text('- Experience (30%): Years × 5 (max 100)', 25, startY + 10);
+        doc.text('- Technical Level (20%): Level × 10', 25, startY + 5);
+        doc.text('- Experience (20%): Years × 5 (max 100)', 25, startY + 10);
         doc.text('- Attendance (20%): Attendance Rate', 25, startY + 15);
-        doc.text('- Age Factor (10%): Based on optimal age of 28', 25, startY + 20);
+        doc.text('- Age Factor (20%): Based on optimal age of 28', 25, startY + 20);
+        doc.text('- Preferred Foot (20%): Both feet 100%, Single foot 50%', 25, startY + 25);
         
         // 添加身价计算说明
         doc.text('Market Value Calculation:', 20, startY + 30);
@@ -1243,7 +1265,7 @@ document.getElementById('generateTeams').addEventListener('change', async functi
 
         // 如果没有守门员，将其他位置的球员分配为守门员
         if (positions.goalkeepers.length === 0) {
-            // 优先选择防守位置的球员
+            // 优先选择防守位置��球员
             const potentialGoalkeepers = [
                 ...positions.defenders,
                 ...positions.sweepers,
@@ -1277,7 +1299,7 @@ document.getElementById('generateTeams').addEventListener('change', async functi
         // 计算总共需要的位置数
         const totalPositionsNeeded = teamsCount * idealTeamSize;
         
-        // 只有当总人数超过所需位置数时，才将多余的人放入补位席
+        // 只有当总人���超过所需位置数时，才将多余的人放入补位席
         const maxPlayers = totalPositionsNeeded;
 
         // 分配守门员
@@ -1325,21 +1347,24 @@ document.getElementById('generateTeams').addEventListener('change', async functi
 
 // 计算球员评分
 function calculatePlayerRating(player) {
-    const skillWeight = 0.4;     // 技术等级权重
-    const expWeight = 0.3;       // 球龄权重
+    const skillWeight = 0.2;     // 技术等级权重
+    const expWeight = 0.2;       // 球龄权重
     const attendWeight = 0.2;    // 出场率权重
-    const ageWeight = 0.1;       // 年龄权重
+    const ageWeight = 0.2;       // 年龄权重
+    const footWeight = 0.2;      // 惯用脚权重
 
     const skillScore = player.skillLevel * 10;
-    const expScore = Math.min(player.experience * 5, 100);
+    const expScore = Math.min(70 + player.experience * 2, 100);  // 基础70分，每年加2分，上限100
     const attendScore = player.attendanceRate;
     const ageScore = Math.max(0, 100 - Math.abs(28 - player.age) * 2);
+    const footScore = player.preferredFoot === 'both' ? 100 : 50;
 
     return (
         skillScore * skillWeight +
         expScore * expWeight +
         attendScore * attendWeight +
-        ageScore * ageWeight
+        ageScore * ageWeight +
+        footScore * footWeight
     );
 }
 
