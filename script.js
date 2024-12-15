@@ -833,7 +833,7 @@ async function moveToHistory() {
         const playersRef = database.ref('players');
         const historyRef = database.ref('signUpHistory');
         
-        // 获取当前报名数据
+        // 获取当前报名��据
         const snapshot = await playersRef.once('value');
         const players = snapshot.val() || {};
         
@@ -1066,10 +1066,10 @@ async function analyzePlayerRatings() {
             const expWeight = 0.2;       // 球龄权重
             const attendWeight = 0.2;    // 出场率权重
             const ageWeight = 0.2;       // 年龄权重
-            const footWeight = 0.2;      // 惯用脚权重
+            const footWeight = 0.2;      // 惯用脚��重
 
-            // 确保技术等级最低为5
-            const skillLevel = Math.max(5, player.skillLevel);
+            // 确保技术等级在5-8之间
+            const skillLevel = Math.min(8, Math.max(5, parseInt(player.skillLevel) || 5));
             const skillScore = skillLevel * 10;
             const expScore = Math.min(70 + player.experience * 2, 100);  // 基础70分，每年加2分，上限100
             const attendScore = attendanceRate;
@@ -1106,7 +1106,7 @@ async function analyzePlayerRatings() {
             return {
                 name: player.name || player.playerName,
                 pinyinName: getPinyinName(player.name || player.playerName),
-                skillLevel: player.skillLevel,
+                skillLevel: skillLevel,
                 experience: player.experience,
                 attendance: attendanceRate,
                 age: player.age,
@@ -1215,7 +1215,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async function()
         
     } catch (error) {
         console.error('导出分析报告失败:', error);
-        alert('���出分析报告失败！\nExport der Analyse fehlgeschlagen!');
+        alert('导出分析报告失败！\nExport der Analyse fehlgeschlagen!');
     }
 });
 
@@ -1403,7 +1403,7 @@ function distributePlayersByPosition(players, teams, position) {
         !teams.some(team => team.some(p => p.name === player.name))
     );
     
-    // 如果没有未分配的球员，直接返回
+    // 如果没有未分配��球员，直接返回
     if (unassignedPlayers.length === 0) return;
     
     // 计算每个队伍的当前评分
@@ -1444,7 +1444,7 @@ function displayTeams(teams, substitutes, is6v6) {
     const teamsContainer = document.querySelector('.teams');
     teamsContainer.innerHTML = '';
 
-    // 创��分组结果的网格容器
+    // 创建分组结果的网格容器
     const teamsGrid = document.createElement('div');
     teamsGrid.className = 'teams-grid';
 
