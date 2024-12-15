@@ -63,7 +63,7 @@ const translations = {
 };
 
 // 添加管理员列表
-const ADMIN_USERS = ['韩聪'];  // 可以添加更多管理员
+const ADMIN_USERS = ['Admin'];  // 设置管理员账号
 
 // 获取位置名称的中德双语显示
 function getPositionName(position) {
@@ -350,19 +350,18 @@ async function updatePlayersList() {
             ${attendanceText}
         `;
         
-        // 获取当前用户名（从输入框或者本地存储）
-        const currentUser = document.getElementById('playerName').value || localStorage.getItem('currentUser') || '';
-        const registeredBy = player.registeredBy || player.name || player.playerName;
+        // 获取当前用户名
+        const currentUser = document.getElementById('playerName').value;
         
-        // 如果是管理员或报名者本人，显示删除按钮
-        if (ADMIN_USERS.includes(currentUser) || currentUser === registeredBy) {
+        // 如果是管理员或本人，显示取消报名按钮
+        if (ADMIN_USERS.includes(currentUser) || currentUser === (player.name || player.playerName)) {
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-btn';
             // 为管理员添加特殊样式
             if (ADMIN_USERS.includes(currentUser)) {
                 deleteBtn.classList.add('admin-delete-btn');
             }
-            deleteBtn.textContent = translations.delete.zh + ' / ' + translations.delete.de;
+            deleteBtn.textContent = '取消报名 / Abmelden';
             deleteBtn.onclick = () => deletePlayer(player);
             li.appendChild(deleteBtn);
         }
@@ -407,26 +406,41 @@ function getPinyinName(chineseName) {
     }
 }
 
-// 删除球员
+// 删除球员（取消报名）
 async function deletePlayer(player) {
-    if (!confirm(translations.confirmDelete.zh + '\n' + translations.confirmDelete.de)) {
+    if (!confirm('确定要取消报名吗？\nMöchten Sie die Anmeldung wirklich stornieren?')) {
         return;
     }
 
     try {
-        // 生成键名
-        const dateKey = `${new Date(player.trainingDate).toDateString()}_${player.name || player.playerName}`;
+        // 确保日期格式一致
+        const trainingDate = new Date(player.trainingDate);
+        const dateKey = `${trainingDate.toDateString()}_${player.name || player.playerName}`;
         
         // 从当前报名中删除
-        await database.ref('players').child(dateKey).remove();
+        const playersRef = database.ref('players');
+        const snapshot = await playersRef.once('value');
+        const allPlayers = snapshot.val() || {};
+        
+        // 查找并删除匹配的记录
+        const keysToDelete = Object.keys(allPlayers).filter(key => {
+            const record = allPlayers[key];
+            return record.name === player.name && 
+                   new Date(record.trainingDate).toDateString() === trainingDate.toDateString();
+        });
+        
+        // 删除所有匹配的记录
+        await Promise.all(keysToDelete.map(key => 
+            playersRef.child(key).remove()
+        ));
         
         // 重新加载所有数据以确保同步
         await loadPlayers();
         
-        alert('删除成功！\nErfolgreich gelöscht!');
+        alert('取消报名成功！\nAbmeldung erfolgreich!');
     } catch (error) {
         console.error('Error deleting player:', error);
-        alert('删除失败，请重试！\nLöschen fehlgeschlagen, bitte erneut versuchen!');
+        alert('取消报名失败，请重试！\nAbmeldung fehlgeschlagen, bitte erneut versuchen!');
     }
 }
 
@@ -456,7 +470,7 @@ async function displaySignUpHistory() {
         for (const [key, record] of Object.entries(historyData)) {
             if (!record || !record.trainingDate) continue;
             
-            // 检查是否是过去的训练
+            // 检查是否是过去的训���
             const trainingDate = new Date(record.trainingDate);
             if (trainingDate >= now) continue;  // 跳过未来的训练
             
@@ -1089,7 +1103,7 @@ async function analyzePlayerRatings() {
             // 计算综合评分
             const skillWeight = 0.2;     // 技术等级权重
             const expWeight = 0.2;       // 球龄权重
-            const attendWeight = 0.2;    // 出场率权重
+            const attendWeight = 0.2;    // 出场��权重
             const ageWeight = 0.2;       // 年龄权重
             const footWeight = 0.2;      // 惯用脚权重
 
@@ -1244,12 +1258,12 @@ document.getElementById('analyzeBtn').addEventListener('click', async function()
     }
 });
 
-// 保存用户名到本地存储
+// 保存用户名到本地存储并检查权限
 document.getElementById('playerName').addEventListener('change', function(e) {
     localStorage.setItem('currentUser', e.target.value);
-    // 检查是否为管理员，显示或隐藏组选项
+    // 检查是否为管理员，显示或隐藏分组选项
     const generateTeamsSelect = document.getElementById('generateTeams');
-    if (e.target.value === '韩聪') {
+    if (ADMIN_USERS.includes(e.target.value)) {
         generateTeamsSelect.style.display = 'block';
     } else {
         generateTeamsSelect.style.display = 'none';
@@ -1436,7 +1450,7 @@ function distributePlayersByPosition(players, teams, position) {
     
     // 分配球员
     unassignedPlayers.forEach(player => {
-        // 检查该球员是否已经被分配
+        // 检查该球员是否已���被分配
         const isAlreadyAssigned = teams.some(team => 
             team.some(p => p.name === player.name)
         );
