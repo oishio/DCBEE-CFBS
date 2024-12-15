@@ -697,7 +697,7 @@ async function importHistoricalData() {
     }
 }
 
-// 页面加载完成后执行
+// 页面加载完成后��行
 document.addEventListener('DOMContentLoaded', async () => {
     generateTrainingDates();
     await importHistoricalData();  // 导入历史数据
@@ -891,6 +891,10 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         return;
     }
     
+    // 获取并确保技术等级最低为5
+    const skillLevel = Math.max(5, parseInt(document.getElementById('skillLevel').value));
+    document.getElementById('skillLevel').value = skillLevel;
+    
     const player = {
         name: playerName,
         position1: document.getElementById('position1').value,
@@ -899,10 +903,10 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         age: document.getElementById('age').value,
         experience: document.getElementById('experience').value,
         preferredFoot: document.getElementById('preferredFoot').value,
-        skillLevel: document.getElementById('skillLevel').value,
+        skillLevel: skillLevel,
         trainingDate: trainingDate,
         signUpTime: new Date().toISOString(),
-        registeredBy: playerName  // 记录谁报的名
+        registeredBy: playerName
     };
 
     try {
@@ -947,7 +951,7 @@ async function exportToPDF(date) {
         doc.setFontSize(16);
         doc.text(`Training Registration - ${dateStr}`, 20, 20);
         
-        // 准备表格���据
+        // 准备表格数据
         const tableData = await Promise.all(players.map(async (player, index) => {
             // 获取出场率
             const { attendanceRate } = await getPlayerLastRecord(player.name || player.playerName);
@@ -1046,12 +1050,13 @@ async function analyzePlayerRatings() {
             const ageWeight = 0.2;       // 年龄权重
             const footWeight = 0.2;      // 惯用脚权重
 
-            const skillScore = player.skillLevel * 10;  // 技术等级得分
+            // 确保技术等级最低为5
+            const skillLevel = Math.max(5, player.skillLevel);
+            const skillScore = skillLevel * 10;
             const expScore = Math.min(70 + player.experience * 2, 100);  // 基础70分，每年加2分，上限100
-            const attendScore = attendanceRate;  // 出场率得分
-            const ageScore = Math.max(0, 100 - Math.abs(28 - player.age) * 2);  // 年龄得分，以28岁为最佳
-            // 计算惯用脚得分
-            const footScore = player.preferredFoot === 'both' ? 100 : 50;  // 双脚100分，单脚50分
+            const attendScore = attendanceRate;
+            const ageScore = Math.max(0, 100 - Math.abs(26 - player.age) * 2);  // 年龄得分，以26岁为最佳
+            const footScore = player.preferredFoot === 'both' ? 100 : 50;
 
             const totalScore = (
                 skillScore * skillWeight +
@@ -1174,7 +1179,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async function()
         doc.text('- Technical Level (20%): Level × 10', 25, startY + 5);
         doc.text('- Experience (20%): Years × 5 (max 100)', 25, startY + 10);
         doc.text('- Attendance (20%): Attendance Rate', 25, startY + 15);
-        doc.text('- Age Factor (20%): Based on optimal age of 28', 25, startY + 20);
+        doc.text('- Age Factor (20%): Based on optimal age of 26', 25, startY + 20);
         doc.text('- Preferred Foot (20%): Both feet 100%, Single foot 50%', 25, startY + 25);
         
         // 添加身价计算说明
@@ -1227,7 +1232,7 @@ document.getElementById('generateTeams').addEventListener('change', async functi
     // 检查人数上限
     const maxPlayers = isSaturday ? 28 : 24;
     if (players.length > maxPlayers) {
-        alert(`超出场地人数上限！最多${maxPlayers}人。\nMaximale Spieleranzahl (${maxPlayers}) überschritten!`);
+        alert(`超出场地人数上限！最多${maxPlayers}人\nMaximale Spieleranzahl (${maxPlayers}) überschritten!`);
         return;
     }
 
@@ -1265,7 +1270,7 @@ document.getElementById('generateTeams').addEventListener('change', async functi
 
         // 如果没有守门员，将其他位置的球员分配为守门员
         if (positions.goalkeepers.length === 0) {
-            // 优先选择防守位置��球员
+            // 优先选择防守位置的球员
             const potentialGoalkeepers = [
                 ...positions.defenders,
                 ...positions.sweepers,
@@ -1299,7 +1304,7 @@ document.getElementById('generateTeams').addEventListener('change', async functi
         // 计算总共需要的位置数
         const totalPositionsNeeded = teamsCount * idealTeamSize;
         
-        // 只有当总人���超过所需位置数时，才将多余的人放入补位席
+        // 只有当总人数超过所需位置数时，才将多余的人放入补位席
         const maxPlayers = totalPositionsNeeded;
 
         // 分配守门员
@@ -1353,10 +1358,12 @@ function calculatePlayerRating(player) {
     const ageWeight = 0.2;       // 年龄权重
     const footWeight = 0.2;      // 惯用脚权重
 
-    const skillScore = player.skillLevel * 10;
+    // 确保技术等级最低为5
+    const skillLevel = Math.max(5, player.skillLevel);
+    const skillScore = skillLevel * 10;
     const expScore = Math.min(70 + player.experience * 2, 100);  // 基础70分，每年加2分，上限100
     const attendScore = player.attendanceRate;
-    const ageScore = Math.max(0, 100 - Math.abs(28 - player.age) * 2);
+    const ageScore = Math.max(0, 100 - Math.abs(26 - player.age) * 2);  // 年龄得分，以26岁为最佳
     const footScore = player.preferredFoot === 'both' ? 100 : 50;
 
     return (
