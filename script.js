@@ -833,7 +833,7 @@ async function moveToHistory() {
         const playersRef = database.ref('players');
         const historyRef = database.ref('signUpHistory');
         
-        // 获取当前报名��据
+        // 获取当前报名数据
         const snapshot = await playersRef.once('value');
         const players = snapshot.val() || {};
         
@@ -931,12 +931,35 @@ document.getElementById('playerForm').addEventListener('submit', async function(
 // PDF导出功能
 async function exportToPDF(date) {
     try {
-        // 获取选中日期的球员数据
-        const historySnapshot = await database.ref('signUpHistory').once('value');
+        // 获取所有数据（包括当前报名和历史记录）
+        const [playersSnapshot, historySnapshot] = await Promise.all([
+            database.ref('players').once('value'),
+            database.ref('signUpHistory').once('value')
+        ]);
+        
+        const playersData = playersSnapshot.val() || {};
         const historyData = historySnapshot.val() || {};
         
+        // 合并数据，当前报名数据优先
+        const allRecords = {
+            ...historyData,
+            ...playersData
+        };
+        
+        // 获取所有球员的最新记录
+        const playerMap = new Map();
+        Object.values(allRecords).forEach(player => {
+            const playerName = player.name || player.playerName;
+            const existingPlayer = playerMap.get(playerName);
+            
+            // 如果没有该球员的记录，或者这是更新的记录，则更新Map
+            if (!existingPlayer || new Date(player.trainingDate) > new Date(existingPlayer.trainingDate)) {
+                playerMap.set(playerName, player);
+            }
+        });
+        
         // 过滤出选中日期的球员
-        const players = Object.values(historyData).filter(player => 
+        const players = Object.values(allRecords).filter(player => 
             player.trainingDate === date
         );
         
@@ -960,15 +983,17 @@ async function exportToPDF(date) {
         
         // 准备表格数据
         const tableData = await Promise.all(players.map(async (player, index) => {
+            // 获取该球员的最新记录
+            const latestData = playerMap.get(player.name || player.playerName);
             // 获取出场率
             const { attendanceRate } = await getPlayerLastRecord(player.name || player.playerName);
             return [
                 index + 1,  // 添加序号
                 getPinyinName(player.name || player.playerName),  // 只显示拼音名字
-                attendanceRate + '%',  // 显示出率
-                player.skillLevel,
-                player.age,
-                player.experience,
+                attendanceRate + '%',  // 显示出场率
+                latestData ? Math.min(8, Math.max(5, parseInt(latestData.skillLevel) || 5)) : player.skillLevel,
+                latestData ? latestData.age : player.age,
+                latestData ? latestData.experience : player.experience,
                 ''  // 空的签名列
             ];
         }));
@@ -1066,7 +1091,7 @@ async function analyzePlayerRatings() {
             const expWeight = 0.2;       // 球龄权重
             const attendWeight = 0.2;    // 出场率权重
             const ageWeight = 0.2;       // 年龄权重
-            const footWeight = 0.2;      // 惯用脚��重
+            const footWeight = 0.2;      // 惯用脚权重
 
             // 确保技术等级在5-8之间
             const skillLevel = Math.min(8, Math.max(5, parseInt(player.skillLevel) || 5));
@@ -1403,7 +1428,7 @@ function distributePlayersByPosition(players, teams, position) {
         !teams.some(team => team.some(p => p.name === player.name))
     );
     
-    // 如果没有未分配��球员，直接返回
+    // 如果没有未分配的球员，直接返回
     if (unassignedPlayers.length === 0) return;
     
     // 计算每个队伍的当前评分
