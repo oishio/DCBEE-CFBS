@@ -340,7 +340,7 @@ async function updatePlayersList() {
         const playerInfo = document.createElement('div');
         playerInfo.className = 'player-info';
         
-        // 添加出场率信息
+        // 添���出场率信息
         const attendanceText = `(${player.attendanceRate}%)`;
         // 获取拼音名字
         const pinyinName = getPinyinName(player.name || player.playerName);
@@ -547,7 +547,7 @@ async function displaySignUpHistory() {
         // 保存历史数据到全局变量，供导出功能使用
         window.historyData = groupedHistory;
 
-        // 更新导出日期选择器
+        // ���新导出日期选择器
         updateExportDateSelect(sortedDates);
     } catch (error) {
         console.error('获取历史记录失败:', error);
@@ -571,7 +571,7 @@ function generateTrainingDates() {
         { date: '2024-12-18', displayDate: '2024年12月18日', displayDateDE: '18.12.2024', time: '20:00' }, // 周三
         { date: '2025-01-08', displayDate: '2025年1月8日', displayDateDE: '08.01.2025', time: '20:00' },   // 周三
         { date: '2025-01-11', displayDate: '2025年1月11日', displayDateDE: '11.01.2025', time: '18:00' },  // 周六
-        { date: '2025-01-15', displayDate: '2025年1月15日', displayDateDE: '15.01.2025', time: '20:00' },  // 周三
+        { date: '2025-01-15', displayDate: '2025年1月15���', displayDateDE: '15.01.2025', time: '20:00' },  // 周三
         { date: '2025-01-18', displayDate: '2025年1月18日', displayDateDE: '18.01.2025', time: '18:00' },  // 周六
         { date: '2025-01-22', displayDate: '2025年1月22日', displayDateDE: '22.01.2025', time: '20:00' },  // 周三
         { date: '2025-01-25', displayDate: '2025年1月25日', displayDateDE: '25.01.2025', time: '18:00' },  // 周六
@@ -732,12 +732,13 @@ async function getPlayerLastRecord(name) {
             ...playersData
         };
         
-        // 获取所有训练记录
+        // 获取所有训练记录并按日期排序
         const allTrainings = Object.values(allRecords)
             .filter(record => record.name === name || record.playerName === name)
             .map(record => ({
                 ...record,
-                skillLevel: Math.max(5, parseInt(record.skillLevel) || 5)
+                // 限制技术等级在5-8之间
+                skillLevel: Math.min(8, Math.max(5, parseInt(record.skillLevel) || 5))
             }))
             .sort((a, b) => new Date(b.trainingDate) - new Date(a.trainingDate));
         
@@ -800,7 +801,7 @@ function autoFillForm(record, attendanceRate) {
 document.getElementById('playerName').addEventListener('input', async function(e) {
     const name = e.target.value;
     if (!name) {
-        // 当姓名被清除时，重置所有表单��段
+        // 当姓名被清除时，重置所有表单段
         document.getElementById('position1').value = '';
         document.getElementById('position2').value = '';
         document.getElementById('position3').value = '';
@@ -825,7 +826,7 @@ document.getElementById('playerName').addEventListener('input', async function(e
     }
 });
 
-// 在分组锁定后将数据移动到历史记录
+// 在分组锁定后将数据移动���历史记录
 async function moveToHistory() {
     try {
         const now = new Date();
@@ -930,7 +931,7 @@ document.getElementById('playerForm').addEventListener('submit', async function(
 // PDF导出功能
 async function exportToPDF(date) {
     try {
-        // 获取选中日期的球员数据
+        // 获��选中日期的球员数据
         const historySnapshot = await database.ref('signUpHistory').once('value');
         const historyData = historySnapshot.val() || {};
         
@@ -1017,7 +1018,7 @@ async function exportToPDF(date) {
 document.getElementById('exportPDF').addEventListener('click', function() {
     const selectedDate = document.getElementById('exportDate').value;
     if (!selectedDate) {
-        alert('���选择导出日期！\nBitte wählen Sie ein Datum aus!');
+        alert('选择导出日期！\nBitte wählen Sie ein Datum aus!');
         return;
     }
     exportToPDF(selectedDate);
@@ -1038,10 +1039,10 @@ async function analyzePlayerRatings() {
             
             // 如果没有该球员的记录，或者这是更新的记录，则更新Map
             if (!existingPlayer || new Date(player.trainingDate) > new Date(existingPlayer.trainingDate)) {
-                // 确保技术等级最低为5
+                // 确保技术等级在5-8之间
                 const updatedPlayer = {
                     ...player,
-                    skillLevel: Math.max(5, parseInt(player.skillLevel) || 5)
+                    skillLevel: Math.min(8, Math.max(5, parseInt(player.skillLevel) || 5))
                 };
                 playerMap.set(playerName, updatedPlayer);
             }
@@ -1215,7 +1216,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async function()
 // 保存用户名到本地存储
 document.getElementById('playerName').addEventListener('change', function(e) {
     localStorage.setItem('currentUser', e.target.value);
-    // 检查是否为管理员，显示或隐藏分组选项
+    // 检查是否为管理员，显示或隐藏组选项
     const generateTeamsSelect = document.getElementById('generateTeams');
     if (e.target.value === '韩聪') {
         generateTeamsSelect.style.display = 'block';
@@ -1396,7 +1397,7 @@ function distributePlayersByPosition(players, teams, position) {
         !teams.some(team => team.some(p => p.name === player.name))
     );
     
-    // 如果没有未分配的球员，直接���回
+    // 如果没有未分配的球员，直接回
     if (unassignedPlayers.length === 0) return;
     
     // 计算每个队伍的当前评分
