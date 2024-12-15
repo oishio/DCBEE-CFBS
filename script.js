@@ -340,7 +340,7 @@ async function updatePlayersList() {
         const playerInfo = document.createElement('div');
         playerInfo.className = 'player-info';
         
-        // 添加出场率信息
+        // 添���出场率信息
         const attendanceText = `(${player.attendanceRate}%)`;
         // 获取拼音名字
         const pinyinName = getPinyinName(player.name || player.playerName);
@@ -678,7 +678,7 @@ async function importHistoricalData() {
             const playersSnapshot = await playersRef.once('value');
             const playersData = playersSnapshot.val() || {};
   
-            // 过滤出 12 月 11 日的记录
+            // 过滤��� 12 月 11 日的记录
             const dec11Records = Object.entries(playersData)
                 .filter(([_, record]) => record.trainingDate === '2023-12-11')
                 .reduce((acc, [key, value]) => ({...acc, [key]: value}), {});
@@ -780,7 +780,8 @@ function autoFillForm(record, attendanceRate) {
     document.getElementById('age').value = record.age || '';
     document.getElementById('experience').value = record.experience || '';
     document.getElementById('preferredFoot').value = record.preferredFoot || '';
-    document.getElementById('skillLevel').value = record.skillLevel || '';
+    // 确保技术等级最低为5
+    document.getElementById('skillLevel').value = Math.max(5, parseInt(record.skillLevel) || 5);
     
     // 显示出场率
     const attendanceDiv = document.getElementById('attendanceRate');
@@ -876,6 +877,11 @@ async function checkPlayerRegistration(playerName, trainingDate) {
 document.getElementById('playerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
+    // 获取并确保技术等级最低为5
+    const skillLevelInput = document.getElementById('skillLevel');
+    const skillLevel = Math.max(5, parseInt(skillLevelInput.value) || 5);
+    skillLevelInput.value = skillLevel;  // 更新输入框的值
+    
     const trainingDate = document.getElementById('trainingDate').value;
     if (!trainingDate) {
         alert(translations.selectDate.zh + '\n' + translations.selectDate.de);
@@ -891,10 +897,6 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         return;
     }
     
-    // 获取并确保技术等级最低为5
-    const skillLevel = Math.max(5, parseInt(document.getElementById('skillLevel').value));
-    document.getElementById('skillLevel').value = skillLevel;
-    
     const player = {
         name: playerName,
         position1: document.getElementById('position1').value,
@@ -903,7 +905,7 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         age: document.getElementById('age').value,
         experience: document.getElementById('experience').value,
         preferredFoot: document.getElementById('preferredFoot').value,
-        skillLevel: skillLevel,
+        skillLevel: skillLevel,  // 使用已确保最低为5的值
         trainingDate: trainingDate,
         signUpTime: new Date().toISOString(),
         registeredBy: playerName
@@ -1017,14 +1019,14 @@ document.getElementById('exportPDF').addEventListener('click', function() {
     exportToPDF(selectedDate);
 });
 
-// ���员评分分析
+// 员评分分析
 async function analyzePlayerRatings() {
     try {
         // 取历史数据
         const historySnapshot = await database.ref('signUpHistory').once('value');
         const historyData = historySnapshot.val() || {};
         
-        // 获取所��球员的最新记录
+        // 获取所有球员的最新记录
         const playerMap = new Map();
         Object.values(historyData).forEach(player => {
             const playerName = player.name || player.playerName;
@@ -1355,7 +1357,7 @@ function calculatePlayerRating(player) {
     const skillWeight = 0.2;     // 技术等级权重
     const expWeight = 0.2;       // 球龄权重
     const attendWeight = 0.2;    // 出场率权重
-    const ageWeight = 0.2;       // 年龄权重
+    const ageWeight = 0.2;       // 年龄权��
     const footWeight = 0.2;      // 惯用脚权重
 
     // 确保技术等级最低为5
@@ -1388,7 +1390,7 @@ function distributePlayersByPosition(players, teams, position) {
     // 如果没有未分配的球员，直接返回
     if (unassignedPlayers.length === 0) return;
     
-    // 计算每个队伍的当前总评分
+    // 计算每个队伍的当前评分
     const getTeamRating = (team) => team.reduce((sum, p) => sum + p.rating, 0);
     
     // 分配球员
@@ -1430,7 +1432,7 @@ function displayTeams(teams, substitutes, is6v6) {
     const teamsGrid = document.createElement('div');
     teamsGrid.className = 'teams-grid';
 
-    // 显示每个队伍
+    // 显示个队伍
     teams.forEach((team, index) => {
         const teamDiv = document.createElement('div');
         teamDiv.className = 'team';
