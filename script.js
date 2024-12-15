@@ -697,7 +697,7 @@ async function importHistoricalData() {
     }
 }
 
-// 页面加载完成后��行
+// 页面加载完成后行
 document.addEventListener('DOMContentLoaded', async () => {
     generateTrainingDates();
     await importHistoricalData();  // 导入历史数据
@@ -1017,14 +1017,14 @@ document.getElementById('exportPDF').addEventListener('click', function() {
     exportToPDF(selectedDate);
 });
 
-// 球员评分分析
+// ���员评分分析
 async function analyzePlayerRatings() {
     try {
         // 取历史数据
         const historySnapshot = await database.ref('signUpHistory').once('value');
         const historyData = historySnapshot.val() || {};
         
-        // 获取所有球员的最新记录
+        // 获取所��球员的最新记录
         const playerMap = new Map();
         Object.values(historyData).forEach(player => {
             const playerName = player.name || player.playerName;
