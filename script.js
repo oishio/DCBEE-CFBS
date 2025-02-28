@@ -611,51 +611,59 @@ async function displaySignUpHistory() {
 
 // 生成训练日期选项
 function generateTrainingDates() {
+    const dates = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);  // 设置时间为当天开始
+    
+    const endDate = new Date(2025, 11, 31);  // 2025年12月31日
+    
+    let currentDate = new Date();
+    
+    while (currentDate <= endDate) {
+        const day = currentDate.getDay();
+        
+        // 只添加周三和周六的日期
+        if (day === 3 || day === 6) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const displayDate = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月${currentDate.getDate()}日`;
+            const displayDateDE = `${currentDate.getDate()}.${currentDate.getMonth() + 1}.${currentDate.getFullYear()}`;
+            
+            // 根据星期几设置不同的训练时间
+            const time = day === 3 ? '20:00' : '18:00';
+            const endTime = day === 3 ? '22:00' : '20:00';
+            
+            if (currentDate >= today) {
+                dates.push({
+                    date: dateStr,
+                    displayDate,
+                    displayDateDE,
+                    time,
+                    endTime
+                });
+            }
+        }
+        
+        // 增加一天
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // 只返回最近6次训练日期
+    const recentDates = dates.slice(0, 6);
+    
+    // 更新日期选择器
     const dateSelect = document.getElementById('trainingDate');
     dateSelect.innerHTML = '<option value="">选择训练日期 / Trainingsdatum</option>';
     
-    // 获取当前时间
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);  // 设置为当天0点
-    
-    // 固定的训练日期
-    const trainingDates = [
-        { date: '2024-12-11', displayDate: '2024年12月11日', displayDateDE: '11.12.2024', time: '20:00' }, // 周三
-        { date: '2024-12-14', displayDate: '2024年12月14日', displayDateDE: '14.12.2024', time: '18:00' }, // 周六
-        { date: '2024-12-18', displayDate: '2024年12月18日', displayDateDE: '18.12.2024', time: '20:00' }, // 周三
-        { date: '2025-01-08', displayDate: '2025年1月8日', displayDateDE: '08.01.2025', time: '20:00' },   // 周三
-        { date: '2025-01-11', displayDate: '2025年1月11日', displayDateDE: '11.01.2025', time: '18:00' },  // 周六
-        { date: '2025-01-15', displayDate: '2025年1月15日', displayDateDE: '15.01.2025', time: '20:00' },  // 周三
-        { date: '2025-01-18', displayDate: '2025年1月18日', displayDateDE: '18.01.2025', time: '18:00' },  // 周六
-        { date: '2025-01-22', displayDate: '2025年1月22日', displayDateDE: '22.01.2025', time: '20:00' },  // 周三
-        { date: '2025-01-25', displayDate: '2025年1月25日', displayDateDE: '25.01.2025', time: '18:00' },  // 周六
-        { date: '2025-01-29', displayDate: '2025年1月29日', displayDateDE: '29.01.2025', time: '20:00' },  // 周三
-        { date: '2025-02-01', displayDate: '2025年2月1日', displayDateDE: '01.02.2025', time: '18:00' },   // 周六
-        { date: '2025-02-05', displayDate: '2025年2月5日', displayDateDE: '05.02.2025', time: '20:00' },   // 周三
-        { date: '2025-02-08', displayDate: '2025年2月8日', displayDateDE: '08.02.2025', time: '18:00' },   // 周六
-        { date: '2025-02-12', displayDate: '2025年2月12日', displayDateDE: '12.02.2025', time: '20:00' },  // 周三
-        { date: '2025-02-15', displayDate: '2025年2月15日', displayDateDE: '15.02.2025', time: '18:00' },  // 周六
-        { date: '2025-02-19', displayDate: '2025年2月19日', displayDateDE: '19.02.2025', time: '20:00' },  // 周三
-        { date: '2025-02-22', displayDate: '2025年2月22日', displayDateDE: '22.02.2025', time: '18:00' },  // 周��
-        { date: '2025-02-26', displayDate: '2025年2月26日', displayDateDE: '26.02.2025', time: '20:00' }   // 周三
-    ];
-    
-    // 只显示未来的训练日期
-    const futureDates = trainingDates
-        .filter(training => new Date(training.date) >= now);
-    
-    // 为每个训练添加结束时间
-    futureDates.forEach(training => {
-        const isWednesday = new Date(training.date).getDay() === 3;
-        const endTime = isWednesday ? '22:00' : '20:00';
+    recentDates.forEach(training => {
         dateSelect.innerHTML += `<option value="${training.date}">
-            ${training.displayDate} ${training.time}-${endTime} / ${training.displayDateDE} ${training.time}-${endTime}
+            ${training.displayDate} ${training.time}-${training.endTime} / 
+            ${training.displayDateDE} ${training.time}-${training.endTime}
         </option>`;
     });
     
     // 自动选择最近的训练日期
-    if (futureDates.length > 0) {
-        const nearestDate = futureDates[0].date;
+    if (recentDates.length > 0) {
+        const nearestDate = recentDates[0].date;
         dateSelect.value = nearestDate;
         // 高亮显示对应的场地信息
         highlightTrainingInfo(nearestDate);
@@ -1123,7 +1131,7 @@ async function analyzePlayerRatings() {
             ...playersData
         };
         
-        // 获���所有球员的最新记录
+        // 获所有球员的最新记录
         const playerMap = new Map();
         Object.values(allRecords).forEach(player => {
             const playerName = player.name || player.playerName;
@@ -1367,7 +1375,7 @@ document.getElementById('generateTeams').addEventListener('change', async functi
             sweepers: ratedPlayers.filter(p => p.position1 && p.position1.includes('sweeper'))
         };
 
-        // 如果没有守门员，将其他位置的球员分配为��门员
+        // 如果没有守门员，将其他位置的球员分配为守门员
         if (positions.goalkeepers.length === 0) {
             // 优先选择防守位置的球员
             const potentialGoalkeepers = [
@@ -1514,7 +1522,7 @@ function distributePlayersByPosition(players, teams, position) {
             }
         });
         
-        // 将球员分配给评分最低的队��
+        // 将球员分配给评分最低的队伍
         const teamIndex = teams.indexOf(minRatingTeam);
         teams[teamIndex].push({ ...player, assignedPosition: position });
     });
