@@ -326,6 +326,13 @@ async function updatePlayersList() {
     const playersList = document.getElementById('playersList');
     playersList.innerHTML = '';
     
+    // 添加总人数显示
+    const totalPlayers = players.length;
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'list-header';
+    headerDiv.innerHTML = `<h3>已报名球员 (${totalPlayers}人) / Angemeldete Spieler (${totalPlayers})</h3>`;
+    playersList.appendChild(headerDiv);
+    
     // 使用 Promise.all 并行获取所有球员的出场率
     const playersWithAttendance = await Promise.all(players.map(async player => {
         const { attendanceRate } = await getPlayerLastRecord(player.name || player.playerName);
@@ -1449,7 +1456,7 @@ document.getElementById('generateTeams').addEventListener('change', async functi
         }
 
         // 显示分组结果
-        displayTeams(teams, substitutes, is6v6);
+        displayTeams(teams, substitutes, is6Plus);
 
     } catch (error) {
         console.error('分组失败:', error);
@@ -1537,16 +1544,18 @@ function displayTeams(teams, substitutes, is6v6) {
     const teamsGrid = document.createElement('div');
     teamsGrid.className = 'teams-grid';
 
-    // 显示个队伍
+    // 显示各个队伍
     teams.forEach((team, index) => {
         const teamDiv = document.createElement('div');
         teamDiv.className = 'team';
         
         // 计算队伍总评分
         const teamRating = team.reduce((sum, player) => sum + player.rating, 0);
+        // 获取队伍人数
+        const teamSize = team.length;
         
         teamDiv.innerHTML = `
-            <h3>${translations.team.zh} ${index + 1} / ${translations.team.de} ${index + 1}</h3>
+            <h3>${translations.team.zh} ${index + 1} (${teamSize}人) / ${translations.team.de} ${index + 1} (${teamSize})</h3>
             <p>${translations.totalStrength.zh} / ${translations.totalStrength.de}: ${teamRating.toFixed(1)}</p>
             <ul>
                 ${team.map(player => `
@@ -1566,7 +1575,7 @@ function displayTeams(teams, substitutes, is6v6) {
         const subsDiv = document.createElement('div');
         subsDiv.className = 'team substitutes';
         subsDiv.innerHTML = `
-            <h3>${translations.substitutes.zh} / ${translations.substitutes.de}</h3>
+            <h3>${translations.substitutes.zh} (${substitutes.length}人) / ${translations.substitutes.de} (${substitutes.length})</h3>
             <ul>
                 ${substitutes.map(player => `
                     <li>${player.name || player.playerName} (${getPinyinName(player.name || player.playerName)}) - 
