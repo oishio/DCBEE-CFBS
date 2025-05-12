@@ -1,19 +1,3 @@
-// Firebase配置
-const firebaseConfig = {
-    apiKey: "AIzaSyDOClS6MuNGaaTOeL4NGdh1jThCeur20J8",
-    authDomain: "dcbee-cfbs.firebaseapp.com",
-    databaseURL: "https://dcbee-cfbs-default-rtdb.firebaseio.com",
-    projectId: "dcbee-cfbs",
-    storageBucket: "dcbee-cfbs.firebasestorage.app",
-    messagingSenderId: "571164317131",
-    appId: "1:571164317131:web:084f26c6a9eb8e2e4e524e",
-    measurementId: "G-XKWS0GJVPC"
-};
-
-// 初始化Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-
 // 生成分组
 async function generateTeams() {
     const groupType = document.getElementById('generateTeams').value;
