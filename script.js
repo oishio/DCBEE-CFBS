@@ -124,6 +124,38 @@ function updateTrainingDates() {
         })}`;
         trainingDateSelect.appendChild(option);
     });
+
+    // 添加日期选择事件监听器
+    trainingDateSelect.addEventListener('change', function() {
+        highlightTrainingSession(this.value);
+    });
+
+    // 自动选择最近的训练日期
+    if (recentDates.length > 0) {
+        const nearestDate = recentDates[0];
+        const dateStr = nearestDate.toISOString().split('T')[0];
+        trainingDateSelect.value = dateStr;
+        highlightTrainingSession(dateStr);
+    }
+}
+
+// 高亮显示训练时间
+function highlightTrainingSession(dateStr) {
+    // 移除所有高亮
+    document.getElementById('wednesdaySession').classList.remove('active-session');
+    document.getElementById('saturdaySession').classList.remove('active-session');
+
+    if (dateStr) {
+        const selectedDate = new Date(dateStr);
+        const dayOfWeek = selectedDate.getDay();
+
+        // 根据选择的日期高亮对应的训练时间
+        if (dayOfWeek === 3) { // 周三
+            document.getElementById('wednesdaySession').classList.add('active-session');
+        } else if (dayOfWeek === 6) { // 周六
+            document.getElementById('saturdaySession').classList.add('active-session');
+        }
+    }
 }
 
 // 页面加载时更新训练日期
