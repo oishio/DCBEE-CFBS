@@ -68,11 +68,11 @@ async function deletePlayer(playerId, playerName, date) {
 
         // 如果提供了日期，则从历史记录中删除
         if (date) {
-            await database.ref(`signups/${date}/${playerId}`).remove();
+            await firebaseFunctions.remove(firebaseFunctions.ref(database, `signups/${date}/${playerId}`));
         } else {
             // 否则从当前训练日期中删除
             const trainingDate = document.getElementById('trainingDate').value;
-            await database.ref(`signups/${trainingDate}/${playerId}`).remove();
+            await firebaseFunctions.remove(firebaseFunctions.ref(database, `signups/${trainingDate}/${playerId}`));
         }
 
         // 更新显示
@@ -371,7 +371,7 @@ async function displayHistory() {
 
     try {
         // 获取所有报名记录
-        const snapshot = await database.ref('signups').once('value');
+        const snapshot = await firebaseFunctions.get(firebaseFunctions.ref(database, 'signups'));
         const historyData = snapshot.val() || {};
         
         // 按日期分组
@@ -459,6 +459,7 @@ async function displayHistory() {
 
     } catch (error) {
         console.error('加载历史记录失败:', error);
+        alert('加载历史记录失败，请重试 / Fehler beim Laden der Historie, bitte versuchen Sie es erneut');
     }
 }
 
@@ -549,7 +550,7 @@ document.getElementById('exportPDF').addEventListener('click', async function() 
 // 获取所有历史报名信息
 async function getAllSignups() {
     try {
-        const snapshot = await database.ref('signups').get();
+        const snapshot = await firebaseFunctions.get(firebaseFunctions.ref(database, 'signups'));
         const allSignups = [];
         
         if (snapshot.exists()) {
