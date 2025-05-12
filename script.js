@@ -48,7 +48,7 @@ async function getPlayers() {
 }
 
 // 删除报名球员
-async function deletePlayer(playerId, playerName) {
+async function deletePlayer(playerId, playerName, date) {
     try {
         // 检查是否是管理员模式
         const isAdmin = localStorage.getItem('isAdmin') === 'true';
@@ -66,10 +66,21 @@ async function deletePlayer(playerId, playerName) {
             }
         }
 
-        const trainingDate = document.getElementById('trainingDate').value;
-        await firebaseFunctions.remove(firebaseFunctions.ref(database, `signups/${trainingDate}/${playerId}`));
+        // 如果提供了日期，则从历史记录中删除
+        if (date) {
+            await database.ref(`signups/${date}/${playerId}`).remove();
+        } else {
+            // 否则从当前训练日期中删除
+            const trainingDate = document.getElementById('trainingDate').value;
+            await database.ref(`signups/${trainingDate}/${playerId}`).remove();
+        }
+
+        // 更新显示
         await displayPlayers();
         await displayHistory();
+        await displayAllHistory();
+        
+        alert('删除成功 / Löschen erfolgreich');
     } catch (error) {
         console.error('删除球员失败:', error);
         alert('删除失败，请重试 / Löschen fehlgeschlagen, bitte versuchen Sie es erneut');
@@ -113,6 +124,7 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         // 更新显示
         await displayPlayers();
         await displayHistory();
+        await displayAllHistory();
         
         // 清空表单
         this.reset();
@@ -334,7 +346,7 @@ async function displayPlayers() {
                     <span class="attendance-rate">Level ${player.skillLevel}</span>
                 </div>
                 ${canDelete ? `
-                    <button class="delete-btn ${isAdmin ? 'admin-delete-btn' : ''}" onclick="deletePlayer('${player.id}', '${player.name}')">
+                    <button class="delete-btn ${isAdmin ? 'admin-delete-btn' : ''}" onclick="deletePlayer('${player.id}', '${player.name}', '')">
                         ${isAdmin ? '管理员删除 / Admin Löschen' : '删除 / Löschen'}
                     </button>
                 ` : ''}
@@ -547,6 +559,7 @@ async function getAllSignups() {
                     const playerData = playerSnapshot.val();
                     allSignups.push({
                         date: date,
+                        id: playerSnapshot.key,
                         ...playerData
                     });
                 });
@@ -593,9 +606,12 @@ async function displayAllHistory() {
             
             html += `
                 <div class="history-date-group">
-                    <h3>${formattedDate} (${players.length}人)</h3>
-                    <div class="history-players">
-                        <table>
+                    <div class="history-header">
+                        <h3>${formattedDate} (${players.length}人)</h3>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="history-content">
+                        <table class="history-players">
                             <thead>
                                 <tr>
                                     <th>姓名 / Name</th>
@@ -605,6 +621,7 @@ async function displayAllHistory() {
                                     <th>惯用脚 / Bevorzugter Fuß</th>
                                     <th>位置选择 / Position</th>
                                     <th>报名时间 / Anmeldezeit</th>
+                                    <th>操作 / Aktion</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -617,6 +634,11 @@ async function displayAllHistory() {
                                         <td>${player.preferredFoot}</td>
                                         <td>${player.position1}, ${player.position2}, ${player.position3}</td>
                                         <td>${new Date(player.signUpTime).toLocaleString('zh-CN')}</td>
+                                        <td>
+                                            <button class="delete-btn" onclick="deletePlayer('${player.id}', '${player.name}', '${date}')">
+                                                删除 / Löschen
+                                            </button>
+                                        </td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -627,6 +649,17 @@ async function displayAllHistory() {
         });
 
         historyContainer.innerHTML = html;
+
+        // 添加展开/折叠功能
+        document.querySelectorAll('.history-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const content = header.nextElementSibling;
+                const icon = header.querySelector('.toggle-icon');
+                content.classList.toggle('collapsed');
+                icon.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
+            });
+        });
+
     } catch (error) {
         console.error('显示历史记录失败:', error);
         alert('获取历史记录失败，请重试 / Fehler beim Laden der Historie, bitte versuchen Sie es erneut');
@@ -666,4 +699,33 @@ function loadPlayerData(playerName) {
     }
     return null;
 }
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    updateTrainingDates();
+    displayPlayers();
+    displayHistory();
+    displayAllHistory(); // 添加显示所有历史记录
+    
+    // 监听姓名输入框的变化
+    const playerNameInput = document.getElementById('playerName');
+    if (playerNameInput) {
+        playerNameInput.addEventListener('input', function() {
+            const playerName = this.value.trim();
+            if (playerName) {
+                const savedData = loadPlayerData(playerName);
+                if (savedData) {
+                    // 填充保存的数据
+                    document.getElementById('age').value = savedData.age || '';
+                    document.getElementById('experience').value = savedData.experience || '';
+                    document.getElementById('skillLevel').value = savedData.skillLevel || '';
+                    document.getElementById('preferredFoot').value = savedData.preferredFoot || '';
+                    document.getElementById('position1').value = savedData.position1 || '';
+                    document.getElementById('position2').value = savedData.position2 || '';
+                    document.getElementById('position3').value = savedData.position3 || '';
+                }
+            }
+        });
+    }
+});
 

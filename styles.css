@@ -409,21 +409,43 @@ form input[type="number"] {
 }
 
 .history-date-group {
-    margin-bottom: 2rem;
-    background: #fff;
+    margin: 2rem 0;
+    background: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.history-header {
     padding: 1rem;
+    background: #f8f9fa;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #dee2e6;
 }
 
-.history-date-group h3 {
+.history-header h3 {
+    margin: 0;
     color: #2c3e50;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #3498db;
 }
 
-.history-players table {
+.toggle-icon {
+    color: #6c757d;
+    transition: transform 0.3s ease;
+}
+
+.history-content {
+    padding: 1rem;
+    transition: max-height 0.3s ease;
+}
+
+.history-content.collapsed {
+    display: none;
+}
+
+.history-players {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1rem;
@@ -433,31 +455,60 @@ form input[type="number"] {
 .history-players td {
     padding: 0.75rem;
     text-align: left;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #dee2e6;
 }
 
 .history-players th {
     background-color: #f8f9fa;
     font-weight: 600;
-    color: #2c3e50;
+    color: #495057;
 }
 
 .history-players tr:hover {
     background-color: #f8f9fa;
 }
 
-.history-players td {
-    color: #34495e;
+.delete-btn {
+    padding: 0.25rem 0.5rem;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
 }
 
-/* 响应式表格 */
+.delete-btn:hover {
+    background-color: #c82333;
+}
+
+.admin-delete-btn {
+    background-color: #6c757d;
+}
+
+.admin-delete-btn:hover {
+    background-color: #5a6268;
+}
+
 @media (max-width: 768px) {
     .history-players {
+        display: block;
         overflow-x: auto;
     }
     
-    .history-players table {
-        min-width: 800px;
+    .history-players th,
+    .history-players td {
+        white-space: nowrap;
+        padding: 0.5rem;
+    }
+    
+    .history-header {
+        padding: 0.75rem;
+    }
+    
+    .history-content {
+        padding: 0.75rem;
     }
 }
 
