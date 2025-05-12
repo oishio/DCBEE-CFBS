@@ -24,23 +24,19 @@ async function getPlayers() {
             throw new Error('未选择训练日期');
         }
 
-        const snapshot = await firebaseFunctions.onValue(
-            firebaseFunctions.ref(database, `signups/${trainingDate}`),
-            (snapshot) => {
-                const players = [];
-                if (snapshot.exists()) {
-                    snapshot.forEach((childSnapshot) => {
-                        players.push({
-                            id: childSnapshot.key,
-                            ...childSnapshot.val()
-                        });
-                    });
-                }
-                return players;
-            }
-        );
-
-        return snapshot;
+        const snapshot = await firebaseFunctions.get(firebaseFunctions.ref(database, `signups/${trainingDate}`));
+        const players = [];
+        
+        if (snapshot.exists()) {
+            snapshot.forEach((childSnapshot) => {
+                players.push({
+                    id: childSnapshot.key,
+                    ...childSnapshot.val()
+                });
+            });
+        }
+        
+        return players;
     } catch (error) {
         console.error('获取球员列表失败:', error);
         throw error;
