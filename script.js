@@ -5,7 +5,12 @@ async function generateTeams() {
 
     try {
         const players = await getPlayers();
-        if (players.length < 8) {
+        
+        // 检查是否是管理员模式
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        
+        // 如果不是管理员且报名人数不足，则提示错误
+        if (!isAdmin && players.length < 8) {
             alert('报名人数不足，无法进行分组 / Nicht genügend Spieler für die Teamerstellung');
             return;
         }
@@ -14,6 +19,13 @@ async function generateTeams() {
         const playersPerTeam = parseInt(groupType);
         const numTeams = Math.floor(players.length / playersPerTeam);
         const remainingPlayers = players.length % playersPerTeam;
+
+        // 如果是管理员模式且没有报名球员，创建空队伍
+        if (isAdmin && players.length === 0) {
+            const teams = Array(2).fill().map(() => []); // 默认创建2个空队伍
+            displayTeams(teams, [], playersPerTeam);
+            return;
+        }
 
         // 按评分排序
         players.sort((a, b) => b.rating - a.rating);
