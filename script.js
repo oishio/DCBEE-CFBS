@@ -323,6 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateTrainingDates();
     displayPlayers();
     displayHistory();
+    displayAllHistory(); // 添加显示所有历史记录
     
     // 监听姓名输入框的变化
     const playerNameInput = document.getElementById('playerName');
@@ -561,4 +562,103 @@ document.getElementById('exportPDF').addEventListener('click', async function() 
         alert('导出失败，请重试 / Export fehlgeschlagen, bitte versuchen Sie es erneut');
     }
 });
+
+// 获取所有历史报名信息
+async function getAllSignups() {
+    try {
+        const snapshot = await database.ref('signups').get();
+        const allSignups = [];
+        
+        if (snapshot.exists()) {
+            snapshot.forEach((dateSnapshot) => {
+                const date = dateSnapshot.key;
+                dateSnapshot.forEach((playerSnapshot) => {
+                    const playerData = playerSnapshot.val();
+                    allSignups.push({
+                        date: date,
+                        ...playerData
+                    });
+                });
+            });
+        }
+        
+        return allSignups;
+    } catch (error) {
+        console.error('获取历史报名信息失败:', error);
+        throw error;
+    }
+}
+
+// 显示所有历史报名信息
+async function displayAllHistory() {
+    try {
+        const allSignups = await getAllSignups();
+        const historyContainer = document.getElementById('historyContainer');
+        if (!historyContainer) return;
+
+        // 按日期排序
+        allSignups.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // 按日期分组
+        const groupedSignups = allSignups.reduce((groups, signup) => {
+            const date = signup.date;
+            if (!groups[date]) {
+                groups[date] = [];
+            }
+            groups[date].push(signup);
+            return groups;
+        }, {});
+
+        let html = '<h2>所有历史报名记录 / Alle Anmeldungen</h2>';
+        
+        // 显示每个日期的报名信息
+        Object.entries(groupedSignups).forEach(([date, players]) => {
+            const formattedDate = new Date(date).toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            });
+            
+            html += `
+                <div class="history-date-group">
+                    <h3>${formattedDate} (${players.length}人)</h3>
+                    <div class="history-players">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>姓名 / Name</th>
+                                    <th>年龄 / Alter</th>
+                                    <th>球龄 / Erfahrung</th>
+                                    <th>技术等级 / Level</th>
+                                    <th>惯用脚 / Bevorzugter Fuß</th>
+                                    <th>位置选择 / Position</th>
+                                    <th>报名时间 / Anmeldezeit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${players.map(player => `
+                                    <tr>
+                                        <td>${player.name}</td>
+                                        <td>${player.age}</td>
+                                        <td>${player.experience}年</td>
+                                        <td>${player.skillLevel}</td>
+                                        <td>${player.preferredFoot}</td>
+                                        <td>${player.position1}, ${player.position2}, ${player.position3}</td>
+                                        <td>${new Date(player.signUpTime).toLocaleString('zh-CN')}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        });
+
+        historyContainer.innerHTML = html;
+    } catch (error) {
+        console.error('显示历史记录失败:', error);
+        alert('获取历史记录失败，请重试 / Fehler beim Laden der Historie, bitte versuchen Sie es erneut');
+    }
+}
 

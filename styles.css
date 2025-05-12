@@ -409,17 +409,56 @@ form input[type="number"] {
 }
 
 .history-date-group {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 6px;
+    margin-bottom: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1rem;
 }
 
 .history-date-group h3 {
     color: #2c3e50;
-    margin-bottom: 10px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #3498db;
+}
+
+.history-players table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.history-players th,
+.history-players td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.history-players th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.history-players tr:hover {
+    background-color: #f8f9fa;
+}
+
+.history-players td {
+    color: #34495e;
+}
+
+/* 响应式表格 */
+@media (max-width: 768px) {
+    .history-players {
+        overflow-x: auto;
+    }
+    
+    .history-players table {
+        min-width: 800px;
+    }
 }
 
 .history-players-list {
@@ -458,11 +497,6 @@ form input[type="number"] {
 .history-accordion {
     border-radius: 8px;
     overflow: hidden;
-}
-
-.history-date-group {
-    margin-bottom: 1px;
-    background: #fff;
 }
 
 .history-header {
