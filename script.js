@@ -78,3 +78,58 @@ function getPositionsForTeamSize(teamSize) {
     }
 }
 
+// 更新训练日期选项
+function updateTrainingDates() {
+    const trainingDateSelect = document.getElementById('trainingDate');
+    if (!trainingDateSelect) return;
+
+    // 清空现有选项
+    trainingDateSelect.innerHTML = '<option value="">选择训练日期 / Trainingsdatum</option>';
+
+    // 获取当前日期
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    
+    // 存储所有训练日期
+    const trainingDates = [];
+    
+    // 生成2025年的所有训练日期
+    const startDate = new Date('2025-01-01');
+    const endDate = new Date('2025-12-31');
+    
+    for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+        // 只添加周三和周六的日期
+        if (date.getDay() === 3 || date.getDay() === 6) {
+            trainingDates.push(new Date(date));
+        }
+    }
+    
+    // 只显示最近的6次训练日期
+    const recentDates = trainingDates.slice(-6);
+    
+    // 添加日期选项
+    recentDates.forEach(date => {
+        const option = document.createElement('option');
+        const dateStr = date.toISOString().split('T')[0];
+        const formattedDate = date.toLocaleDateString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'long'
+        });
+        option.value = dateStr;
+        option.textContent = `${formattedDate} / ${date.toLocaleDateString('de-DE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'long'
+        })}`;
+        trainingDateSelect.appendChild(option);
+    });
+}
+
+// 页面加载时更新训练日期
+document.addEventListener('DOMContentLoaded', function() {
+    updateTrainingDates();
+});
+
