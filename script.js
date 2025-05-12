@@ -1,3 +1,137 @@
+// 全局错误处理
+window.onerror = function(msg, url, line) {
+    console.error(`Error: ${msg}\nURL: ${url}\nLine: ${line}`);
+    return false;
+};
+
+// 检查本地存储
+function checkLocalStorage() {
+    try {
+        localStorage.setItem('test', 'test');
+        localStorage.removeItem('test');
+        return true;
+    } catch (e) {
+        console.error('本地存储不可用:', e);
+        return false;
+    }
+}
+
+// 获取球员列表
+async function getPlayers() {
+    try {
+        const trainingDate = document.getElementById('trainingDate').value;
+        if (!trainingDate) {
+            throw new Error('未选择训练日期');
+        }
+
+        const snapshot = await firebaseFunctions.onValue(
+            firebaseFunctions.ref(database, `signups/${trainingDate}`),
+            (snapshot) => {
+                const players = [];
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        players.push({
+                            id: childSnapshot.key,
+                            ...childSnapshot.val()
+                        });
+                    });
+                }
+                return players;
+            }
+        );
+
+        return snapshot;
+    } catch (error) {
+        console.error('获取球员列表失败:', error);
+        throw error;
+    }
+}
+
+// 删除报名球员
+async function deletePlayer(playerId, playerName) {
+    try {
+        // 检查是否是管理员模式
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        // 获取当前登录用户
+        const currentUser = localStorage.getItem('currentUser');
+        
+        // 如果不是管理员，检查是否是本人
+        if (!isAdmin) {
+            if (currentUser !== playerName) {
+                alert('您只能删除自己的报名信息 / Sie können nur Ihre eigene Anmeldung löschen');
+                return;
+            }
+            if (!confirm('确定要删除您的报名记录吗？/ Sind Sie sicher, dass Sie Ihre Anmeldung löschen möchten?')) {
+                return;
+            }
+        }
+
+        const trainingDate = document.getElementById('trainingDate').value;
+        await firebaseFunctions.remove(firebaseFunctions.ref(database, `signups/${trainingDate}/${playerId}`));
+        await displayPlayers();
+        await displayHistory();
+    } catch (error) {
+        console.error('删除球员失败:', error);
+        alert('删除失败，请重试 / Löschen fehlgeschlagen, bitte versuchen Sie es erneut');
+    }
+}
+
+// 表单提交处理
+document.getElementById('playerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const playerData = {
+        name: document.getElementById('playerName').value,
+        age: document.getElementById('age').value,
+        experience: document.getElementById('experience').value,
+        skillLevel: document.getElementById('skillLevel').value,
+        preferredFoot: document.getElementById('preferredFoot').value,
+        position1: document.getElementById('position1').value,
+        position2: document.getElementById('position2').value,
+        position3: document.getElementById('position3').value,
+        trainingDate: document.getElementById('trainingDate').value,
+        signUpTime: new Date().toISOString()
+    };
+    
+    try {
+        // 验证必填字段
+        if (!playerData.name || !playerData.trainingDate) {
+            alert('请填写姓名和选择训练日期 / Bitte geben Sie Ihren Namen ein und wählen Sie ein Trainingsdatum');
+            return;
+        }
+
+        // 保存到Firebase
+        const trainingDate = playerData.trainingDate;
+        const newPlayerRef = firebaseFunctions.push(firebaseFunctions.ref(database, `signups/${trainingDate}`));
+        await firebaseFunctions.set(newPlayerRef, playerData);
+        
+        // 保存球员信息到本地存储
+        if (checkLocalStorage()) {
+            savePlayerData(playerData);
+        }
+        
+        // 更新显示
+        await displayPlayers();
+        await displayHistory();
+        
+        // 清空表单
+        this.reset();
+        
+        alert('报名成功 / Anmeldung erfolgreich');
+    } catch (error) {
+        console.error('报名失败:', error);
+        alert('报名失败，请重试 / Anmeldung fehlgeschlagen, bitte versuchen Sie es erneut');
+    }
+});
+
+// 等待Firebase连接成功后再初始化页面
+window.addEventListener('firebaseConnected', function() {
+    updateTrainingDates();
+    displayPlayers();
+    displayHistory();
+    displayAllHistory();
+});
+
 // 生成分组
 async function generateTeams() {
     const groupType = document.getElementById('generateTeams').value;
@@ -170,26 +304,6 @@ function highlightTrainingSession(dateStr) {
     }
 }
 
-// 获取已报名球员列表
-async function getPlayers() {
-    try {
-        const trainingDate = document.getElementById('trainingDate').value;
-        if (!trainingDate) return [];
-
-        const snapshot = await database.ref(`signups/${trainingDate}`).once('value');
-        const players = [];
-        snapshot.forEach((childSnapshot) => {
-            const player = childSnapshot.val();
-            player.id = childSnapshot.key;
-            players.push(player);
-        });
-        return players;
-    } catch (error) {
-        console.error('获取球员列表失败:', error);
-        return [];
-    }
-}
-
 // 显示已报名球员列表
 async function displayPlayers() {
     const playersList = document.getElementById('playersList');
@@ -236,149 +350,6 @@ async function displayPlayers() {
     } catch (error) {
         console.error('显示球员列表失败:', error);
     }
-}
-
-// 删除报名球员
-async function deletePlayer(playerId, playerName) {
-    try {
-        // 检查是否是管理员模式
-        const isAdmin = localStorage.getItem('isAdmin') === 'true';
-        // 获取当前登录用户
-        const currentUser = localStorage.getItem('currentUser');
-        
-        // 如果不是管理员，检查是否是本人
-        if (!isAdmin) {
-            if (currentUser !== playerName) {
-                alert('您只能删除自己的报名信息 / Sie können nur Ihre eigene Anmeldung löschen');
-                return;
-            }
-            if (!confirm('确定要删除您的报名记录吗？/ Sind Sie sicher, dass Sie Ihre Anmeldung löschen möchten?')) {
-                return;
-            }
-        }
-
-        const trainingDate = document.getElementById('trainingDate').value;
-        await database.ref(`signups/${trainingDate}/${playerId}`).remove();
-        await displayPlayers();
-        await displayHistory(); // 同时更新历史记录
-    } catch (error) {
-        console.error('删除球员失败:', error);
-        alert('删除失败，请重试 / Löschen fehlgeschlagen, bitte versuchen Sie es erneut');
-    }
-}
-
-// 修改表单提交处理函数
-document.getElementById('playerForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const playerData = {
-        name: document.getElementById('playerName').value,
-        age: document.getElementById('age').value,
-        experience: document.getElementById('experience').value,
-        skillLevel: document.getElementById('skillLevel').value,
-        preferredFoot: document.getElementById('preferredFoot').value,
-        position1: document.getElementById('position1').value,
-        position2: document.getElementById('position2').value,
-        position3: document.getElementById('position3').value,
-        trainingDate: document.getElementById('trainingDate').value,
-        signUpTime: new Date().toISOString()
-    };
-    
-    try {
-        // 验证必填字段
-        if (!playerData.name || !playerData.trainingDate) {
-            alert('请填写姓名和选择训练日期 / Bitte geben Sie Ihren Namen ein und wählen Sie ein Trainingsdatum');
-            return;
-        }
-
-        // 保存到Firebase
-        const trainingDate = playerData.trainingDate;
-        const newPlayerRef = database.ref(`signups/${trainingDate}`).push();
-        await newPlayerRef.set(playerData);
-        
-        // 保存球员信息到本地存储
-        savePlayerData(playerData);
-        
-        // 更新显示
-        await displayPlayers();
-        await displayHistory();
-        
-        // 清空表单
-        this.reset();
-        
-        alert('报名成功 / Anmeldung erfolgreich');
-    } catch (error) {
-        console.error('报名失败:', error);
-        alert('报名失败，请重试 / Anmeldung fehlgeschlagen, bitte versuchen Sie es erneut');
-    }
-});
-
-// 监听训练日期变化
-document.getElementById('trainingDate').addEventListener('change', function() {
-    displayPlayers();
-});
-
-// 页面加载时初始化
-document.addEventListener('DOMContentLoaded', function() {
-    updateTrainingDates();
-    displayPlayers();
-    displayHistory();
-    displayAllHistory(); // 添加显示所有历史记录
-    
-    // 监听姓名输入框的变化
-    const playerNameInput = document.getElementById('playerName');
-    if (playerNameInput) {
-        playerNameInput.addEventListener('input', function() {
-            const playerName = this.value.trim();
-            if (playerName) {
-                const savedData = loadPlayerData(playerName);
-                if (savedData) {
-                    // 填充保存的数据
-                    document.getElementById('age').value = savedData.age || '';
-                    document.getElementById('experience').value = savedData.experience || '';
-                    document.getElementById('skillLevel').value = savedData.skillLevel || '';
-                    document.getElementById('preferredFoot').value = savedData.preferredFoot || '';
-                    document.getElementById('position1').value = savedData.position1 || '';
-                    document.getElementById('position2').value = savedData.position2 || '';
-                    document.getElementById('position3').value = savedData.position3 || '';
-                }
-            }
-        });
-    }
-});
-
-// 保存球员信息到本地存储
-function savePlayerData(playerData) {
-    const playerName = playerData.name;
-    if (playerName) {
-        // 只保存基本信息，不包含训练日期和报名时间
-        const dataToSave = {
-            name: playerData.name,
-            age: playerData.age,
-            experience: playerData.experience,
-            skillLevel: playerData.skillLevel,
-            preferredFoot: playerData.preferredFoot,
-            position1: playerData.position1,
-            position2: playerData.position2,
-            position3: playerData.position3
-        };
-        localStorage.setItem(`player_${playerName}`, JSON.stringify(dataToSave));
-    }
-}
-
-// 从本地存储加载球员信息
-function loadPlayerData(playerName) {
-    if (!playerName) return null;
-    const savedData = localStorage.getItem(`player_${playerName}`);
-    if (savedData) {
-        try {
-            return JSON.parse(savedData);
-        } catch (error) {
-            console.error('解析本地存储数据失败:', error);
-            return null;
-        }
-    }
-    return null;
 }
 
 // 显示报名历史记录
@@ -660,5 +631,39 @@ async function displayAllHistory() {
         console.error('显示历史记录失败:', error);
         alert('获取历史记录失败，请重试 / Fehler beim Laden der Historie, bitte versuchen Sie es erneut');
     }
+}
+
+// 保存球员信息到本地存储
+function savePlayerData(playerData) {
+    const playerName = playerData.name;
+    if (playerName) {
+        // 只保存基本信息，不包含训练日期和报名时间
+        const dataToSave = {
+            name: playerData.name,
+            age: playerData.age,
+            experience: playerData.experience,
+            skillLevel: playerData.skillLevel,
+            preferredFoot: playerData.preferredFoot,
+            position1: playerData.position1,
+            position2: playerData.position2,
+            position3: playerData.position3
+        };
+        localStorage.setItem(`player_${playerName}`, JSON.stringify(dataToSave));
+    }
+}
+
+// 从本地存储加载球员信息
+function loadPlayerData(playerName) {
+    if (!playerName) return null;
+    const savedData = localStorage.getItem(`player_${playerName}`);
+    if (savedData) {
+        try {
+            return JSON.parse(savedData);
+        } catch (error) {
+            console.error('解析本地存储数据失败:', error);
+            return null;
+        }
+    }
+    return null;
 }
 
