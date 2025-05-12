@@ -88,16 +88,14 @@ function updateTrainingDates() {
 
     // 获取当前日期
     const today = new Date();
-    const currentYear = today.getFullYear();
     
     // 存储所有训练日期
     const trainingDates = [];
     
-    // 生成2025年的所有训练日期
-    const startDate = new Date('2025-01-01');
+    // 生成从今天开始到2025年底的所有训练日期
     const endDate = new Date('2025-12-31');
     
-    for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+    for (let date = new Date(today); date <= endDate; date.setDate(date.getDate() + 1)) {
         // 只添加周三和周六的日期
         if (date.getDay() === 3 || date.getDay() === 6) {
             trainingDates.push(new Date(date));
@@ -105,7 +103,7 @@ function updateTrainingDates() {
     }
     
     // 只显示最近的6次训练日期
-    const recentDates = trainingDates.slice(-6);
+    const recentDates = trainingDates.slice(0, 6);
     
     // 添加日期选项
     recentDates.forEach(date => {
