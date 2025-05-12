@@ -295,6 +295,7 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         
         // 更新显示
         await displayPlayers();
+        await displayHistory();
         
         // 清空表单
         this.reset();
@@ -315,7 +316,7 @@ document.getElementById('trainingDate').addEventListener('change', function() {
 document.addEventListener('DOMContentLoaded', function() {
     updateTrainingDates();
     displayPlayers();
-    displayHistory(); // 添加显示历史记录
+    displayHistory();
     
     // 监听姓名输入框的变化
     const playerNameInput = document.getElementById('playerName');
@@ -343,15 +344,32 @@ document.addEventListener('DOMContentLoaded', function() {
 function savePlayerData(playerData) {
     const playerName = playerData.name;
     if (playerName) {
-        localStorage.setItem(`player_${playerName}`, JSON.stringify(playerData));
+        // 只保存基本信息，不包含训练日期和报名时间
+        const dataToSave = {
+            name: playerData.name,
+            age: playerData.age,
+            experience: playerData.experience,
+            skillLevel: playerData.skillLevel,
+            preferredFoot: playerData.preferredFoot,
+            position1: playerData.position1,
+            position2: playerData.position2,
+            position3: playerData.position3
+        };
+        localStorage.setItem(`player_${playerName}`, JSON.stringify(dataToSave));
     }
 }
 
 // 从本地存储加载球员信息
 function loadPlayerData(playerName) {
+    if (!playerName) return null;
     const savedData = localStorage.getItem(`player_${playerName}`);
     if (savedData) {
-        return JSON.parse(savedData);
+        try {
+            return JSON.parse(savedData);
+        } catch (error) {
+            console.error('解析本地存储数据失败:', error);
+            return null;
+        }
     }
     return null;
 }
