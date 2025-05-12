@@ -490,11 +490,14 @@ document.getElementById('exportPDF').addEventListener('click', async function() 
     }
 
     try {
-        const snapshot = await database.ref(`signups/${selectedDate}`).once('value');
+        const snapshot = await firebaseFunctions.get(firebaseFunctions.ref(database, `signups/${selectedDate}`));
         const players = [];
-        snapshot.forEach((childSnapshot) => {
-            players.push(childSnapshot.val());
-        });
+        
+        if (snapshot.exists()) {
+            snapshot.forEach((childSnapshot) => {
+                players.push(childSnapshot.val());
+            });
+        }
 
         // 创建PDF
         const { jsPDF } = window.jspdf;
