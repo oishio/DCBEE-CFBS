@@ -161,5 +161,66 @@ function highlightTrainingSession(dateStr) {
 // 页面加载时更新训练日期
 document.addEventListener('DOMContentLoaded', function() {
     updateTrainingDates();
+    
+    // 监听姓名输入框的变化
+    const playerNameInput = document.getElementById('playerName');
+    if (playerNameInput) {
+        playerNameInput.addEventListener('input', function() {
+            const playerName = this.value.trim();
+            if (playerName) {
+                const savedData = loadPlayerData(playerName);
+                if (savedData) {
+                    // 填充保存的数据
+                    document.getElementById('age').value = savedData.age || '';
+                    document.getElementById('experience').value = savedData.experience || '';
+                    document.getElementById('skillLevel').value = savedData.skillLevel || '';
+                    document.getElementById('preferredFoot').value = savedData.preferredFoot || '';
+                    document.getElementById('position1').value = savedData.position1 || '';
+                    document.getElementById('position2').value = savedData.position2 || '';
+                    document.getElementById('position3').value = savedData.position3 || '';
+                }
+            }
+        });
+    }
 });
+
+// 修改表单提交处理函数
+document.getElementById('playerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const playerData = {
+        name: document.getElementById('playerName').value,
+        age: document.getElementById('age').value,
+        experience: document.getElementById('experience').value,
+        skillLevel: document.getElementById('skillLevel').value,
+        preferredFoot: document.getElementById('preferredFoot').value,
+        position1: document.getElementById('position1').value,
+        position2: document.getElementById('position2').value,
+        position3: document.getElementById('position3').value,
+        trainingDate: document.getElementById('trainingDate').value
+    };
+    
+    // 保存球员信息到本地存储
+    savePlayerData(playerData);
+    
+    // 继续原有的提交逻辑
+    // ... existing code ...
+});
+
+// 保存球员信息到本地存储
+function savePlayerData(playerData) {
+    const playerName = playerData.name;
+    if (playerName) {
+        localStorage.setItem(`player_${playerName}`, JSON.stringify(playerData));
+    }
+}
+
+// 从本地存储加载球员信息
+function loadPlayerData(playerName) {
+    const savedData = localStorage.getItem(`player_${playerName}`);
+    if (savedData) {
+        return JSON.parse(savedData);
+    }
+    return null;
+}
 
