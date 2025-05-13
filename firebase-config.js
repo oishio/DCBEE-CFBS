@@ -21,24 +21,37 @@ window.firebaseFunctions = window.firebase.database;
 async function initializeDatabase() {
     try {
         // 等待连接建立
-        await new Promise((resolve) => {
+        await new Promise((resolve, reject) => {
             const connectedRef = window.database.ref('.info/connected');
+            let resolved = false;
+            
             connectedRef.on('value', (snap) => {
-                if (snap.val() === true) {
+                if (snap.val() === true && !resolved) {
+                    resolved = true;
                     console.log('Firebase数据库连接成功');
                     resolve();
                 }
             });
+
+            // 如果5秒内没有连接成功，也继续执行
+            setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    resolve();
+                }
+            }, 5000);
         });
 
         // 测试数据访问
         const testRef = window.database.ref('signups');
-        await testRef.once('value', (snapshot) => {
-            console.log('数据库访问权限正常');
-            console.log('数据状态:', snapshot.exists() ? '存在历史数据' : '暂无数据');
-        });
-        
-        return true;
+        const snapshot = await testRef.once('value');
+        if (snapshot.exists()) {
+            console.log('数据库访问权限正常，历史数据存在');
+            return true;
+        } else {
+            console.log('数据库访问权限正常，暂无数据');
+            return true;
+        }
     } catch (error) {
         console.error('数据库初始化错误:', error);
         return false;
