@@ -715,8 +715,18 @@ form input[type="number"] {
 } 
 
 /* 管理员删除按钮样式 */
+.admin-btn {
+    background-color: #424242;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 10px;
+}
+
 .admin-delete-btn {
-    background: #007bff;  /* 使用不同的颜色区分管理员 */
+    background-color: #f44336;
 }
 
 .admin-delete-btn:hover {

@@ -133,7 +133,9 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         }
 
         // 保存到Firebase
-        const newPlayerRef = signupsRef.push();
+        // 修改 Firebase 相关的代码
+        const signupsRef = window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`);
+        const newPlayerRef = window.firebaseFunctions.push(signupsRef);
         await newPlayerRef.set(playerData);
         
         // 保存球员信息到本地存储
@@ -809,4 +811,20 @@ function displayGroups(groups) {
 
     groupsContainer.innerHTML = html;
 }
+
+// 添加在文件开头
+function checkAdmin() {
+    const password = prompt('请输入管理员密码 / Bitte geben Sie das Admin-Passwort ein:');
+    if (password === 'admin123') { // 这里设置管理员密码
+        localStorage.setItem('isAdmin', 'true');
+        alert('管理员模式已启用 / Admin-Modus aktiviert');
+        location.reload();
+    } else {
+        localStorage.setItem('isAdmin', 'false');
+        alert('密码错误 / Falsches Passwort');
+    }
+}
+
+// 添加管理员登录按钮的事件监听器
+document.getElementById('adminLogin').addEventListener('click', checkAdmin);
 
