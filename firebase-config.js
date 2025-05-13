@@ -1,16 +1,35 @@
 // 初始化 Firebase
 const firebaseConfig = {
-    // ... 现有配置 ...
+    apiKey: "AIzaSyDOClS6MuNGaaTOeL4NGdh1jThCeur20J8",
+    authDomain: "dcbee-cfbs.firebaseapp.com",
+    databaseURL: "https://dcbee-cfbs-default-rtdb.firebaseio.com",
+    projectId: "dcbee-cfbs",
+    storageBucket: "dcbee-cfbs.firebasestorage.app",
+    messagingSenderId: "571164317131",
+    appId: "1:571164317131:web:084f26c6a9eb8e2e4e524e",
+    measurementId: "G-XKWS0GJVPC"
 };
 
 // 初始化 Firebase
-window.firebase.initializeApp(firebaseConfig);
+if (!window.firebase.apps.length) {
+    window.firebase.initializeApp(firebaseConfig);
+}
 
 // 初始化数据库引用
 window.database = window.firebase.database();
 window.firebaseFunctions = window.firebase.database;
 
-// 检查数据库连接和权限
+// 检查数据库连接状态
+const connectedRef = window.database.ref('.info/connected');
+connectedRef.on('value', (snap) => {
+    if (snap.val() === true) {
+        console.log('Firebase数据库连接成功');
+    } else {
+        console.error('Firebase数据库未连接');
+    }
+});
+
+// 检查数据库和权限
 async function initializeDatabase() {
     try {
         // 等待连接建立
