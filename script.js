@@ -43,7 +43,7 @@ async function initializeFirebase() {
         const analytics = getAnalytics(app);
 
         // 将Firebase函数暴露到全局作用域
-        window.firebaseFunctions = {
+        firebaseFunctions = {
             ref,
             onValue,
             set,
@@ -74,20 +74,30 @@ async function initializeFirebase() {
 
 // 页面加载时初始化Firebase
 document.addEventListener('DOMContentLoaded', async function() {
-    const initialized = await initializeFirebase();
-    if (initialized) {
-        // 等待Firebase连接成功后再执行其他操作
-        window.addEventListener('firebaseConnected', function() {
-            updateTrainingDates();
-            displayPlayers();
-            displayHistory();
-            displayAllHistory();
-        });
+    try {
+        const initialized = await initializeFirebase();
+        if (initialized) {
+            // 等待Firebase连接成功后再执行其他操作
+            window.addEventListener('firebaseConnected', function() {
+                console.log('Firebase已连接，开始初始化页面...');
+                updateTrainingDates();
+                displayPlayers();
+                displayHistory();
+                displayAllHistory();
+            });
+        }
+    } catch (error) {
+        console.error('初始化失败:', error);
     }
 });
 
 // 获取球员列表
 async function getPlayers() {
+    if (!firebaseFunctions) {
+        console.error('Firebase尚未初始化');
+        return [];
+    }
+
     try {
         const trainingDate = document.getElementById('trainingDate').value;
         if (!trainingDate) {
@@ -424,6 +434,11 @@ async function displayPlayers() {
 
 // 显示报名历史记录
 async function displayHistory() {
+    if (!firebaseFunctions) {
+        console.error('Firebase尚未初始化');
+        return;
+    }
+
     const historyList = document.querySelector('.history-list');
     if (!historyList) return;
 
@@ -610,6 +625,11 @@ document.getElementById('exportPDF').addEventListener('click', async function() 
 
 // 获取所有历史报名信息
 async function getAllSignups() {
+    if (!firebaseFunctions) {
+        console.error('Firebase尚未初始化');
+        return [];
+    }
+
     try {
         const snapshot = await firebaseFunctions.get(firebaseFunctions.ref(database, 'signups'));
         const allSignups = [];
