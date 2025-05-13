@@ -73,3 +73,57 @@ window.database.ref('.info/connected').on('value', (snap) => {
         reconnectAttempts = 0;
     }
 });
+
+// 添加自动分组功能
+window.autoGroupPlayers = async (date) => {
+    try {
+        const signupsRef = window.database.ref(`signups/${date}`);
+        const snapshot = await signupsRef.once('value');
+        
+        if (!snapshot.exists()) {
+            console.log('当前无报名数据');
+            return;
+        }
+
+        // 获取所有报名玩家
+        const players = [];
+        snapshot.forEach(childSnapshot => {
+            players.push({
+                id: childSnapshot.key,
+                ...childSnapshot.val()
+            });
+        });
+
+        // 按技术等级排序
+        const skillLevels = {
+            'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1
+        };
+        
+        players.sort((a, b) => skillLevels[b.skillLevel] - skillLevels[a.skillLevel]);
+
+        // 分组
+        const groups = {
+            'A队': [],
+            'B队': []
+        };
+
+        // 蛇形分组以保持实力平衡
+        players.forEach((player, index) => {
+            if (index % 2 === 0) {
+                groups['A队'].push(player);
+            } else {
+                groups['B队'].push(player);
+            }
+        });
+
+        // 保存分组结果
+        const groupsRef = window.database.ref(`groups/${date}`);
+        await groupsRef.set(groups);
+
+        console.log('自动分组完成');
+        return groups;
+    } catch (error) {
+        console.error('自动分组失败:', error);
+        return null;
+    }
+};
