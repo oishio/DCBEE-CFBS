@@ -24,56 +24,36 @@ async function initializeDatabase() {
         window.database.goOnline();
         
         // 等待连接建立
-        await new Promise((resolve, reject) => {
+        await new Promise((resolve) => {
             const connectedRef = window.database.ref('.info/connected');
-            let connectionAttempts = 0;
-            let timeout;
+            let isResolved = false;
             
             const checkConnection = (snap) => {
-                if (snap.val() === true) {
-                    clearTimeout(timeout);
+                if (snap.val() === true && !isResolved) {
+                    isResolved = true;
                     console.log('Firebase数据库连接成功');
-                    connectedRef.off('value', checkConnection);
                     resolve();
-                } else {
-                    connectionAttempts++;
-                    console.log(`尝试连接数据库 (${connectionAttempts}/3)`);
-                    if (connectionAttempts <= 3) {
-                        window.database.goOnline();
-                    } else {
-                        clearTimeout(timeout);
-                        console.log('使用备用连接方式');
-                        resolve(); // 即使未连接也继续执行
-                    }
                 }
             };
             
-            // 设置连接超时
-            timeout = setTimeout(() => {
-                connectedRef.off('value', checkConnection);
-                console.log('连接超时，使用备用连接方式');
-                resolve();
-            }, 5000);
+            // 如果3秒内没有连接成功，也继续执行
+            setTimeout(() => {
+                if (!isResolved) {
+                    isResolved = true;
+                    resolve();
+                }
+            }, 3000);
             
             connectedRef.on('value', checkConnection);
         });
 
         // 测试数据访问
         const testRef = window.database.ref('signups');
-        const snapshot = await Promise.race([
-            testRef.once('value'),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('数据访问超时')), 3000))
-        ]);
-        
-        console.log('数据库访问权限正常，', snapshot.exists() ? '历史数据存在' : '暂无数据');
+        const snapshot = await testRef.once('value');
+        console.log('数据库访问正常，', snapshot.exists() ? '历史数据存在' : '暂无数据');
         return true;
     } catch (error) {
-        if (error.message === '数据访问超时') {
-            console.warn('数据访问超时，将重试连接');
-            setTimeout(initializeDatabase, 1000);
-        } else {
-            console.error('数据库初始化错误:', error);
-        }
+        console.error('数据库初始化错误:', error);
         return false;
     }
 }
