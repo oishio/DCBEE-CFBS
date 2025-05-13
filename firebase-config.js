@@ -11,59 +11,51 @@ const firebaseConfig = {
 };
 
 // 初始化 Firebase
-if (!window.firebase.apps.length) {
-    window.firebase.initializeApp(firebaseConfig);
-}
+window.firebase.initializeApp(firebaseConfig);
 
 // 初始化数据库引用
 window.database = window.firebase.database();
 window.firebaseFunctions = window.firebase.database;
 
 // 检查数据库连接状态
-const connectedRef = window.database.ref('.info/connected');
-connectedRef.on('value', (snap) => {
-    if (snap.val() === true) {
-        console.log('Firebase数据库连接成功');
-    } else {
-        console.error('Firebase数据库未连接');
-    }
-});
-
-// 检查数据库和权限
 async function initializeDatabase() {
     try {
         // 等待连接建立
         await new Promise((resolve, reject) => {
-            const connectedRef = window.firebaseFunctions.ref(window.database, '.info/connected');
+            const connectedRef = window.database.ref('.info/connected');
             connectedRef.on('value', (snap) => {
                 if (snap.val() === true) {
                     console.log('Firebase数据库连接成功');
                     resolve();
                 } else {
                     console.error('Firebase数据库未连接');
-                    reject(new Error('数据库连接失败'));
                 }
             });
+            
+            // 设置超时
+            setTimeout(() => reject(new Error('连接超时')), 10000);
         });
 
-        // 检查数据访问权限
-        const dbRef = window.firebaseFunctions.ref(window.database, 'signups');
-        const snapshot = await window.firebaseFunctions.get(dbRef);
+        // 测试数据访问
+        const testRef = window.database.ref('signups');
+        const testSnapshot = await testRef.once('value');
         console.log('数据库访问权限正常');
-        if (snapshot.exists()) {
-            console.log('历史数据存在');
-        } else {
-            console.log('暂无历史数据');
-        }
+        console.log('数据状态:', testSnapshot.exists() ? '存在历史数据' : '暂无数据');
+        
+        return true;
     } catch (error) {
         console.error('数据库初始化错误:', error);
-        // 添加重试逻辑
-        setTimeout(initializeDatabase, 3000);
+        return false;
     }
 }
 
 // 启动初始化
-initializeDatabase();
+initializeDatabase().then(success => {
+    if (!success) {
+        console.error('数据库初始化失败，将在3秒后重试');
+        setTimeout(initializeDatabase, 3000);
+    }
+});
 
 // 添加自动重连机制
 let reconnectAttempts = 0;
