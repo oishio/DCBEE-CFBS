@@ -43,7 +43,7 @@ async function initializeFirebase() {
         const analytics = getAnalytics(app);
 
         // 将Firebase函数暴露到全局作用域
-        firebaseFunctions = {
+        window.firebaseFunctions = {
             ref,
             onValue,
             set,
@@ -76,10 +76,13 @@ async function initializeFirebase() {
 document.addEventListener('DOMContentLoaded', async function() {
     const initialized = await initializeFirebase();
     if (initialized) {
-        updateTrainingDates();
-        displayPlayers();
-        displayHistory();
-        displayAllHistory();
+        // 等待Firebase连接成功后再执行其他操作
+        window.addEventListener('firebaseConnected', function() {
+            updateTrainingDates();
+            displayPlayers();
+            displayHistory();
+            displayAllHistory();
+        });
     }
 });
 
