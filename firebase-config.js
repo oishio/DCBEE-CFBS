@@ -20,38 +20,35 @@ window.firebaseFunctions = window.firebase.database;
 // 检查数据库连接状态
 async function initializeDatabase() {
     try {
+        // 先确保数据库在线
+        window.database.goOnline();
+        
         // 等待连接建立
-        await new Promise((resolve, reject) => {
+        await new Promise((resolve) => {
             const connectedRef = window.database.ref('.info/connected');
-            let resolved = false;
+            let connectionAttempts = 0;
             
-            connectedRef.on('value', (snap) => {
-                if (snap.val() === true && !resolved) {
-                    resolved = true;
+            const checkConnection = (snap) => {
+                if (snap.val() === true) {
                     console.log('Firebase数据库连接成功');
+                    connectedRef.off('value', checkConnection);
                     resolve();
+                } else {
+                    connectionAttempts++;
+                    if (connectionAttempts <= 3) {
+                        window.database.goOnline();
+                    }
                 }
-            });
-
-            // 如果5秒内没有连接成功，也继续执行
-            setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    resolve();
-                }
-            }, 5000);
+            };
+            
+            connectedRef.on('value', checkConnection);
         });
 
         // 测试数据访问
         const testRef = window.database.ref('signups');
         const snapshot = await testRef.once('value');
-        if (snapshot.exists()) {
-            console.log('数据库访问权限正常，历史数据存在');
-            return true;
-        } else {
-            console.log('数据库访问权限正常，暂无数据');
-            return true;
-        }
+        console.log('数据库访问权限正常，', snapshot.exists() ? '历史数据存在' : '暂无数据');
+        return true;
     } catch (error) {
         console.error('数据库初始化错误:', error);
         return false;
@@ -68,9 +65,7 @@ const maxReconnectAttempts = 5;
 window.database.ref('.info/connected').on('value', (snap) => {
     if (!snap.val() && reconnectAttempts < maxReconnectAttempts) {
         reconnectAttempts++;
-        setTimeout(() => {
-            window.database.goOnline();
-        }, 1000);
+        window.database.goOnline();
     } else if (snap.val()) {
         reconnectAttempts = 0;
     }
