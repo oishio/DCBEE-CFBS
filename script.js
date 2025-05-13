@@ -717,12 +717,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // 监听姓名输入框的变化
     const playerNameInput = document.getElementById('playerName');
     if (playerNameInput) {
+        // 监听姓名输入框的变化
         playerNameInput.addEventListener('input', function() {
             const playerName = this.value.trim();
             if (playerName) {
                 const savedData = loadPlayerData(playerName);
                 if (savedData) {
-                    // 填充保存的数据
+                    // 自动填充表单
                     document.getElementById('age').value = savedData.age || '';
                     document.getElementById('experience').value = savedData.experience || '';
                     document.getElementById('skillLevel').value = savedData.skillLevel || '';
