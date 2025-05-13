@@ -723,48 +723,16 @@ form input[type="number"] {
     border-radius: 4px;
     cursor: pointer;
     margin: 10px;
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
+    /* 改为相对定位，避免遮挡其他元素 */
+    position: relative;
+    display: inline-block;
 }
 
 .admin-btn:hover {
     background-color: #616161;
 }
 
-.admin-delete-btn {
-    background-color: #f44336;
-}
-
-.admin-delete-btn:hover {
-    background: #0056b3;
-} 
-
-.team-message {
-    background: #fff3cd;
-    border: 1px solid #ffeeba;
-    color: #856404;
-    padding: 20px;
-    border-radius: 8px;
-    text-align: center;
+.admin-controls {
     margin: 20px 0;
-}
-
-.team-message p {
-    margin: 0;
-    line-height: 1.5;
-} 
-
-.teams-container {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    margin-top: 20px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.teams-container h2 {
-    color: #333;
-    margin-bottom: 20px;
-    text-align: center;
+    text-align: right;
 }

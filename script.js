@@ -830,7 +830,5 @@ document.addEventListener('DOMContentLoaded', function() {
     if (adminLoginBtn) {
         adminLoginBtn.addEventListener('click', checkAdmin);
     }
-    
-    // ... 其他初始化代码 ...
 });
 
