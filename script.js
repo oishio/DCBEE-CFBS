@@ -549,18 +549,40 @@ document.getElementById('exportPDF').addEventListener('click', async function() 
 });
 
 // 获取所有历史报名信息
+// 修改数据库初始化检查
 async function getAllSignups() {
-    if (!window.firebaseFunctions) {
-        console.error('Firebase尚未初始化');
+    // 等待数据库连接
+    let retries = 0;
+    while (!window.database && retries < 5) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        retries++;
+    }
+
+    if (!window.database || !window.firebaseFunctions) {
+        console.error('Firebase数据库未连接');
         return [];
     }
 
     try {
-        const snapshot = await window.firebaseFunctions.get(window.firebaseFunctions.ref(window.database, 'signups'));
+        // 检查数据库连接状态
+        const connectedRef = window.firebaseFunctions.ref(window.database, '.info/connected');
+        const connected = await window.firebaseFunctions.get(connectedRef);
+        
+        if (!connected.val()) {
+            throw new Error('数据库连接已断开');
+        }
+
+        // 原有的获取数据逻辑
+        const [signupsSnapshot, historySnapshot] = await Promise.all([
+            window.firebaseFunctions.get(window.firebaseFunctions.ref(window.database, 'signups')),
+            window.firebaseFunctions.get(window.firebaseFunctions.ref(window.database, 'signUpHistory'))
+        ]);
+
         const allSignups = [];
         
-        if (snapshot.exists()) {
-            snapshot.forEach((dateSnapshot) => {
+        // 处理当前报名
+        if (signupsSnapshot.exists()) {
+            signupsSnapshot.forEach((dateSnapshot) => {
                 const date = dateSnapshot.key;
                 dateSnapshot.forEach((playerSnapshot) => {
                     const playerData = playerSnapshot.val();
@@ -573,6 +595,22 @@ async function getAllSignups() {
             });
         }
         
+        // 处理历史记录
+        if (historySnapshot.exists()) {
+            historySnapshot.forEach((dateSnapshot) => {
+                const date = dateSnapshot.key;
+                dateSnapshot.forEach((playerSnapshot) => {
+                    const playerData = playerSnapshot.val();
+                    allSignups.push({
+                        date: date,
+                        id: playerSnapshot.key,
+                        ...playerData
+                    });
+                });
+            });
+        }
+        
+        console.log('获取到的记录数:', allSignups.length);
         return allSignups;
     } catch (error) {
         console.error('获取历史报名信息失败:', error);

@@ -22,10 +22,28 @@ dbRef.once('value')
     });
 
 // 添加数据库错误处理
-window.database.ref('.info/connected').on('value', (snap) => {
+// 监听数据库连接状态
+const connectedRef = window.firebaseFunctions.ref(window.database, '.info/connected');
+connectedRef.on('value', (snap) => {
     if (snap.val() === true) {
-        console.log('已连接到数据库');
+        console.log('Firebase数据库连接成功');
     } else {
-        console.log('数据库连接断开');
+        console.error('Firebase数据库未连接');
+    }
+});
+
+// 添加重连机制
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+
+window.database.ref('.info/connected').on('value', (snap) => {
+    if (!snap.val() && reconnectAttempts < maxReconnectAttempts) {
+        reconnectAttempts++;
+        console.log(`尝试重新连接数据库 (${reconnectAttempts}/${maxReconnectAttempts})`);
+        setTimeout(() => {
+            window.database.goOnline();
+        }, 1000 * reconnectAttempts);
+    } else if (snap.val()) {
+        reconnectAttempts = 0;
     }
 });
