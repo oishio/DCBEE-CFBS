@@ -556,51 +556,34 @@ async function getAllSignups() {
     }
 
     try {
-        // 获取数据库引用
+        // 获取当前报名数据
         const signupsRef = window.firebaseFunctions.ref(window.database, 'signups');
-        const historyRef = window.firebaseFunctions.ref(window.database, 'signUpHistory');
-
-        // 获取数据快照
-        const [signupsSnapshot, historySnapshot] = await Promise.all([
-            window.firebaseFunctions.get(signupsRef),
-            window.firebaseFunctions.get(historyRef)
-        ]);
-
+        const signupsSnapshot = await window.firebaseFunctions.get(signupsRef);
+        
         const allSignups = [];
         
         // 处理当前报名
         if (signupsSnapshot.exists()) {
             signupsSnapshot.forEach((dateSnapshot) => {
                 const date = dateSnapshot.key;
-                dateSnapshot.forEach((playerSnapshot) => {
-                    const playerData = playerSnapshot.val();
-                    // 确保数据格式正确
-                    if (playerData && typeof playerData === 'object') {
-                        allSignups.push({
-                            date: date,
-                            id: playerSnapshot.key,
-                            ...playerData
-                        });
-                    }
-                });
-            });
-        }
-        
-        // 处理历史记录
-        if (historySnapshot.exists()) {
-            historySnapshot.forEach((dateSnapshot) => {
-                const date = dateSnapshot.key;
-                dateSnapshot.forEach((playerSnapshot) => {
-                    const playerData = playerSnapshot.val();
-                    // 确保数据格式正确
-                    if (playerData && typeof playerData === 'object') {
-                        allSignups.push({
-                            date: date,
-                            id: playerSnapshot.key,
-                            ...playerData
-                        });
-                    }
-                });
+                if (date && typeof date === 'string') {  // 确保日期键值有效
+                    dateSnapshot.forEach((playerSnapshot) => {
+                        const playerData = playerSnapshot.val();
+                        if (playerData && typeof playerData === 'object') {
+                            // 清理数据中的特殊字符
+                            const cleanPlayerData = Object.entries(playerData).reduce((acc, [key, value]) => {
+                                acc[key] = typeof value === 'string' ? value.replace(/[^\w\s-]/g, '') : value;
+                                return acc;
+                            }, {});
+                            
+                            allSignups.push({
+                                date: date,
+                                id: playerSnapshot.key,
+                                ...cleanPlayerData
+                            });
+                        }
+                    });
+                }
             });
         }
         
