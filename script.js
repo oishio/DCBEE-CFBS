@@ -16,6 +16,73 @@ function checkLocalStorage() {
     }
 }
 
+// 全局变量
+let database;
+let firebaseFunctions;
+
+// 初始化Firebase
+async function initializeFirebase() {
+    try {
+        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+        const { getDatabase, ref, onValue, set, push, remove, get } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
+        const { getAnalytics } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js");
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDOClS6MuNGaaTOeL4NGdh1jThCeur20J8",
+            authDomain: "dcbee-cfbs.firebaseapp.com",
+            databaseURL: "https://dcbee-cfbs-default-rtdb.firebaseio.com",
+            projectId: "dcbee-cfbs",
+            storageBucket: "dcbee-cfbs.firebasestorage.app",
+            messagingSenderId: "571164317131",
+            appId: "1:571164317131:web:084f26c6a9eb8e2e4e524e",
+            measurementId: "G-XKWS0GJVPC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        database = getDatabase(app);
+        const analytics = getAnalytics(app);
+
+        // 将Firebase函数暴露到全局作用域
+        firebaseFunctions = {
+            ref,
+            onValue,
+            set,
+            push,
+            remove,
+            get
+        };
+
+        // 检查数据库连接
+        const connectedRef = ref(database, ".info/connected");
+        onValue(connectedRef, (snap) => {
+            if (snap.val() === true) {
+                console.log("Firebase数据库连接成功");
+                // 触发自定义事件通知连接成功
+                window.dispatchEvent(new CustomEvent('firebaseConnected'));
+            } else {
+                console.log("Firebase数据库未连接");
+            }
+        });
+
+        return true;
+    } catch (error) {
+        console.error("Firebase初始化失败:", error);
+        alert("系统初始化失败，请刷新页面重试 / Systeminitialisierung fehlgeschlagen, bitte Seite neu laden");
+        return false;
+    }
+}
+
+// 页面加载时初始化Firebase
+document.addEventListener('DOMContentLoaded', async function() {
+    const initialized = await initializeFirebase();
+    if (initialized) {
+        updateTrainingDates();
+        displayPlayers();
+        displayHistory();
+        displayAllHistory();
+    }
+});
+
 // 获取球员列表
 async function getPlayers() {
     try {
@@ -130,14 +197,6 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         console.error('报名失败:', error);
         alert('报名失败，请重试 / Anmeldung fehlgeschlagen, bitte versuchen Sie es erneut');
     }
-});
-
-// 等待Firebase连接成功后再初始化页面
-window.addEventListener('firebaseConnected', function() {
-    updateTrainingDates();
-    displayPlayers();
-    displayHistory();
-    displayAllHistory();
 });
 
 // 生成分组
