@@ -811,7 +811,7 @@ function displayGroups(groups) {
     groupsContainer.innerHTML = html;
 }
 
-// 添加在文件开头
+// 添加管理员登录功能
 function checkAdmin() {
     const password = prompt('请输入管理员密码 / Bitte geben Sie das Admin-Passwort ein:');
     if (password === 'admin123') { // 这里设置管理员密码
@@ -824,6 +824,13 @@ function checkAdmin() {
     }
 }
 
-// 添加管理员登录按钮的事件监听器
-document.getElementById('adminLogin').addEventListener('click', checkAdmin);
+// 等待 DOM 加载完成后再添加事件监听器
+document.addEventListener('DOMContentLoaded', function() {
+    const adminLoginBtn = document.getElementById('adminLogin');
+    if (adminLoginBtn) {
+        adminLoginBtn.addEventListener('click', checkAdmin);
+    }
+    
+    // ... 其他初始化代码 ...
+});
 

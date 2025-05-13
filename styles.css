@@ -723,6 +723,13 @@ form input[type="number"] {
     border-radius: 4px;
     cursor: pointer;
     margin: 10px;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+}
+
+.admin-btn:hover {
+    background-color: #616161;
 }
 
 .admin-delete-btn {
