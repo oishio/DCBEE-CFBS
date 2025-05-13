@@ -93,7 +93,7 @@ document.getElementById('playerForm').addEventListener('submit', async function(
     e.preventDefault();
     
     const playerData = {
-        name: document.getElementById('playerName').value,
+        name: document.getElementById('playerName').value.trim(),  // 确保去除空格
         age: document.getElementById('age').value,
         experience: document.getElementById('experience').value,
         skillLevel: document.getElementById('skillLevel').value,
@@ -113,15 +113,16 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         }
 
         // 检查是否重复报名
-        const signupsRef = window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`);
-        const existingSignups = await window.firebaseFunctions.get(signupsRef);
+        const signupsRef = window.database.ref(`signups/${playerData.trainingDate}`);
+        const existingSignups = await signupsRef.once('value');
         
         let isAlreadyRegistered = false;
         if (existingSignups.exists()) {
             existingSignups.forEach((childSnapshot) => {
                 const existingPlayer = childSnapshot.val();
-                if (existingPlayer.name.trim().toLowerCase() === playerData.name.trim().toLowerCase()) {
+                if (existingPlayer.name.trim().toLowerCase() === playerData.name.toLowerCase()) {
                     isAlreadyRegistered = true;
+                    return true; // 中断循环
                 }
             });
         }
@@ -132,8 +133,8 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         }
 
         // 保存到Firebase
-        const newPlayerRef = window.firebaseFunctions.push(signupsRef);
-        await window.firebaseFunctions.set(newPlayerRef, playerData);
+        const newPlayerRef = signupsRef.push();
+        await newPlayerRef.set(playerData);
         
         // 保存球员信息到本地存储
         if (checkLocalStorage()) {
