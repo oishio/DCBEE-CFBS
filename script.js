@@ -112,6 +112,26 @@ document.getElementById('playerForm').addEventListener('submit', async function(
             return;
         }
 
+        // 检查是否重复报名
+        const existingSignups = await window.firebaseFunctions.get(
+            window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`)
+        );
+        
+        if (existingSignups.exists()) {
+            let isAlreadyRegistered = false;
+            existingSignups.forEach((childSnapshot) => {
+                const existingPlayer = childSnapshot.val();
+                if (existingPlayer.name === playerData.name) {
+                    isAlreadyRegistered = true;
+                }
+            });
+            
+            if (isAlreadyRegistered) {
+                alert('您已经报名参加本次训练 / Sie sind bereits für dieses Training angemeldet');
+                return;
+            }
+        }
+
         // 保存到Firebase
         const trainingDate = playerData.trainingDate;
         const newPlayerRef = window.firebaseFunctions.push(window.firebaseFunctions.ref(window.database, `signups/${trainingDate}`));
