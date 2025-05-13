@@ -113,8 +113,9 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         }
 
         // 检查是否重复报名
-        const signupsRef = window.database.ref(`signups/${playerData.trainingDate}`);
-        const existingSignups = await signupsRef.once('value');
+        const existingSignups = await window.firebaseFunctions.get(
+            window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`)
+        );
         
         let isAlreadyRegistered = false;
         if (existingSignups.exists()) {
@@ -122,7 +123,6 @@ document.getElementById('playerForm').addEventListener('submit', async function(
                 const existingPlayer = childSnapshot.val();
                 if (existingPlayer.name.trim().toLowerCase() === playerData.name.toLowerCase()) {
                     isAlreadyRegistered = true;
-                    return true; // 中断循环
                 }
             });
         }
@@ -133,10 +133,9 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         }
 
         // 保存到Firebase
-        // 修改 Firebase 相关的代码
         const signupsRef = window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`);
         const newPlayerRef = window.firebaseFunctions.push(signupsRef);
-        await newPlayerRef.set(playerData);
+        await window.firebaseFunctions.set(newPlayerRef, playerData);
         
         // 保存球员信息到本地存储
         if (checkLocalStorage()) {
