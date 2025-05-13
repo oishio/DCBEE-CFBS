@@ -130,6 +130,18 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         // 清空表单
         this.reset();
         
+        // 在报名成功后添加
+        const signUpDate = formatDate(new Date());
+        const groups = await window.autoGroupPlayers(signUpDate);
+        if (groups) {
+            console.log('分组结果:', groups);
+            // 可以在这里添加显示分组结果的代码
+            displayGroups(groups);
+        }
+
+        // 清空表单
+        this.reset();
+        
         alert('报名成功 / Anmeldung erfolgreich');
     } catch (error) {
         console.error('报名失败:', error);
@@ -751,4 +763,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// 添加显示分组结果的函数
+function displayGroups(groups) {
+    const groupsContainer = document.getElementById('groupsContainer');
+    if (!groupsContainer) return;
+
+    let html = '<h3>本次分组结果 / Gruppeneinteilung</h3>';
+    
+    for (const [teamName, players] of Object.entries(groups)) {
+        html += `
+            <div class="team-group">
+                <h4>${teamName} (${players.length}人)</h4>
+                <ul>
+                    ${players.map(player => `
+                        <li>
+                            ${player.name} 
+                            <span class="player-level">[${player.skillLevel}]</span>
+                            <span class="player-position">${player.position1}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    groupsContainer.innerHTML = html;
+}
 
