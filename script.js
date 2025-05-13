@@ -755,80 +755,1132 @@ function loadPlayerData(playerName) {
 }
 
 // 页面加载时初始化
+// 修改 DOMContentLoaded 事件监听器的位置和内容
 document.addEventListener('DOMContentLoaded', function() {
-    updateTrainingDates();
-    displayPlayers();
-    displayHistory();
-    displayAllHistory(); // 添加显示所有历史记录
-    
-    // 监听姓名输入框的变化
-    const playerNameInput = document.getElementById('playerName');
-    if (playerNameInput) {
-        // 监听姓名输入框的变化
-        playerNameInput.addEventListener('input', function() {
-            const playerName = this.value.trim();
-            if (playerName) {
-                const savedData = loadPlayerData(playerName);
-                if (savedData) {
-                    // 自动填充表单
-                    document.getElementById('age').value = savedData.age || '';
-                    document.getElementById('experience').value = savedData.experience || '';
-                    document.getElementById('skillLevel').value = savedData.skillLevel || '';
-                    document.getElementById('preferredFoot').value = savedData.preferredFoot || '';
-                    document.getElementById('position1').value = savedData.position1 || '';
-                    document.getElementById('position2').value = savedData.position2 || '';
-                    document.getElementById('position3').value = savedData.position3 || '';
+// 初始化 Firebase
+if (!window.firebaseFunctions) {
+    console.error('等待 Firebase 初始化...');
+    setTimeout(() => {
+        initializeApp();
+    }, 1000);
+} else {
+    initializeApp();
+}
+});
+
+// 添加初始化函数
+function initializeApp() {
+// 初始化所有功能
+updateTrainingDates();
+displayPlayers();
+displayHistory();
+displayAllHistory();
+
+// 添加事件监听器
+const adminLoginBtn = document.getElementById('adminLogin');
+if (adminLoginBtn) {
+    adminLoginBtn.addEventListener('click', checkAdmin);
+}
+
+const playerNameInput = document.getElementById('playerName');
+if (playerNameInput) {
+    playerNameInput.addEventListener('input', handlePlayerNameInput);
+}
+
+const exportPDFBtn = document.getElementById('exportPDF');
+if (exportPDFBtn) {
+    exportPDFBtn.addEventListener('click', exportToPDF);
+}
+
+const playerForm = document.getElementById('playerForm');
+if (playerForm) {
+    playerForm.addEventListener('submit', handleFormSubmit);
+}
+}
+
+// 处理球员姓名输入
+function handlePlayerNameInput() {
+    const playerName = this.value.trim();
+    if (playerName) {
+        const savedData = loadPlayerData(playerName);
+        if (savedData) {
+            // 自动填充表单
+            Object.entries(savedData).forEach(([key, value]) => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = value || '';
                 }
+            });
+        }
+    }
+}
+document.getElementById('playerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const playerData = {
+        name: document.getElementById('playerName').value.trim(),  // 确保去除空格
+        age: document.getElementById('age').value,
+        experience: document.getElementById('experience').value,
+        skillLevel: document.getElementById('skillLevel').value,
+        preferredFoot: document.getElementById('preferredFoot').value,
+        position1: document.getElementById('position1').value,
+        position2: document.getElementById('position2').value,
+        position3: document.getElementById('position3').value,
+        trainingDate: document.getElementById('trainingDate').value,
+        signUpTime: new Date().toISOString()
+    };
+    
+    try {
+        // 验证必填字段
+        if (!playerData.name || !playerData.trainingDate) {
+            alert('请填写姓名和选择训练日期 / Bitte geben Sie Ihren Namen ein und wählen Sie ein Trainingsdatum');
+            return;
+        }
+
+        // 检查是否重复报名
+        const existingSignups = await window.firebaseFunctions.get(
+            window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`)
+        );
+        
+        let isAlreadyRegistered = false;
+        if (existingSignups.exists()) {
+            existingSignups.forEach((childSnapshot) => {
+                const existingPlayer = childSnapshot.val();
+                if (existingPlayer.name.trim().toLowerCase() === playerData.name.toLowerCase()) {
+                    isAlreadyRegistered = true;
+                }
+            });
+        }
+        
+        if (isAlreadyRegistered) {
+            alert('您已经报名参加本次训练，不能重复报名 / Sie sind bereits für dieses Training angemeldet');
+            return;
+        }
+
+        // 保存到Firebase
+        const signupsRef = window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`);
+        const newPlayerRef = window.firebaseFunctions.push(signupsRef);
+        await window.firebaseFunctions.set(newPlayerRef, playerData);
+        
+        // 保存球员信息到本地存储
+        if (checkLocalStorage()) {
+            savePlayerData(playerData);
+        }
+        
+        // 更新显示
+        await displayPlayers();
+        await displayHistory();
+        await displayAllHistory();
+        
+        // 清空表单
+        this.reset();
+        
+        // 在报名成功后添加
+        const signUpDate = formatDate(new Date());
+        const groups = await window.autoGroupPlayers(signUpDate);
+        if (groups) {
+            console.log('分组结果:', groups);
+            // 可以在这里添加显示分组结果的代码
+            displayGroups(groups);
+        }
+
+        // 清空表单
+        this.reset();
+        
+        alert('报名成功 / Anmeldung erfolgreich');
+    } catch (error) {
+        console.error('报名失败:', error);
+        alert('报名失败，请重试 / Anmeldung fehlgeschlagen, bitte versuchen Sie es erneut');
+    }
+});
+
+// 生成分组
+async function generateTeams() {
+    const groupType = document.getElementById('generateTeams').value;
+    if (!groupType) return;
+
+    try {
+        const players = await getPlayers();
+        
+        // 检查是否是管理员模式
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        
+        // 如果不是管理员且报名人数不足，则提示错误
+        if (!isAdmin && players.length < 8) {
+            alert('报名人数不足，无法进行分组 / Nicht genügend Spieler für die Teamerstellung');
+            return;
+        }
+
+        // 计算每个队伍需要的球员数量
+        const playersPerTeam = parseInt(groupType);
+        const numTeams = Math.floor(players.length / playersPerTeam);
+        const remainingPlayers = players.length % playersPerTeam;
+
+        // 如果是管理员模式且没有报名球员，创建空队伍
+        if (isAdmin && players.length === 0) {
+            const teams = Array(2).fill().map(() => []); // 默认创建2个空队伍
+            displayTeams(teams, [], playersPerTeam);
+            return;
+        }
+
+        // 按评分排序
+        players.sort((a, b) => b.rating - a.rating);
+
+        // 初始化队伍
+        const teams = Array(numTeams).fill().map(() => []);
+        const substitutes = [];
+
+        // 分配球员到队伍
+        for (let i = 0; i < players.length; i++) {
+            const player = players[i];
+            
+            // 如果剩余球员数量不足以组成完整队伍，放入替补席
+            if (i >= numTeams * playersPerTeam) {
+                substitutes.push(player);
+                continue;
+            }
+
+            // 计算应该分配到哪个队伍
+            const teamIndex = i % numTeams;
+            teams[teamIndex].push(player);
+        }
+
+        // 为每个队伍分配位置
+        teams.forEach(team => {
+            // 根据队伍人数确定位置分配
+            const positions = getPositionsForTeamSize(playersPerTeam);
+            
+            // 按评分排序
+            team.sort((a, b) => b.rating - a.rating);
+            
+            // 分配位置
+            team.forEach((player, index) => {
+                if (index < positions.length) {
+                    player.assignedPosition = positions[index];
+                }
+            });
+        });
+
+        // 显示分组结果
+        displayTeams(teams, substitutes, playersPerTeam);
+
+    } catch (error) {
+        console.error('分组失败:', error);
+        alert('分组失败，请重试 / Teamerstellung fehlgeschlagen, bitte versuchen Sie es erneut');
+    }
+}
+
+// 根据队伍人数获取位置配置
+function getPositionsForTeamSize(teamSize) {
+    switch(teamSize) {
+        case 5:
+            return ['striker', 'winger', 'pivot', 'defender', 'goalkeeper'];
+        case 6:
+            return ['striker6', 'winger6', 'midfielder6', 'defender6', 'sweeper6', 'goalkeeper6'];
+        case 7:
+            return ['striker6', 'winger6', 'midfielder6', 'midfielder6', 'defender6', 'sweeper6', 'goalkeeper6'];
+        case 8:
+            return ['striker6', 'winger6', 'winger6', 'midfielder6', 'midfielder6', 'defender6', 'sweeper6', 'goalkeeper6'];
+        default:
+            return [];
+    }
+}
+
+// 更新训练日期选项
+function updateTrainingDates() {
+    const trainingDateSelect = document.getElementById('trainingDate');
+    if (!trainingDateSelect) return;
+
+    // 清空现有选项
+    trainingDateSelect.innerHTML = '<option value="">选择训练日期 / Trainingsdatum</option>';
+
+    // 获取当前日期
+    const today = new Date();
+    
+    // 存储所有训练日期
+    const trainingDates = [];
+    
+    // 生成从今天开始到2025年底的所有训练日期
+    const endDate = new Date('2025-12-31');
+    
+    for (let date = new Date(today); date <= endDate; date.setDate(date.getDate() + 1)) {
+        // 只添加周三和周六的日期
+        if (date.getDay() === 3 || date.getDay() === 6) {
+            trainingDates.push(new Date(date));
+        }
+    }
+    
+    // 只显示最近的6次训练日期
+    const recentDates = trainingDates.slice(0, 6);
+    
+    // 添加日期选项
+    recentDates.forEach(date => {
+        const option = document.createElement('option');
+        const dateStr = date.toISOString().split('T')[0];
+        const formattedDate = date.toLocaleDateString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'long'
+        });
+        option.value = dateStr;
+        option.textContent = `${formattedDate} / ${date.toLocaleDateString('de-DE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'long'
+        })}`;
+        trainingDateSelect.appendChild(option);
+    });
+
+    // 添加日期选择事件监听器
+    trainingDateSelect.addEventListener('change', function() {
+        highlightTrainingSession(this.value);
+    });
+
+    // 自动选择最近的训练日期
+    if (recentDates.length > 0) {
+        const nearestDate = recentDates[0];
+        const dateStr = nearestDate.toISOString().split('T')[0];
+        trainingDateSelect.value = dateStr;
+        highlightTrainingSession(dateStr);
+    }
+}
+
+// 高亮显示训练时间
+function highlightTrainingSession(dateStr) {
+    // 移除所有高亮
+    document.getElementById('wednesdaySession').classList.remove('active-session');
+    document.getElementById('saturdaySession').classList.remove('active-session');
+
+    if (dateStr) {
+        const selectedDate = new Date(dateStr);
+        const dayOfWeek = selectedDate.getDay();
+
+        // 根据选择的日期高亮对应的训练时间
+        if (dayOfWeek === 3) { // 周三
+            document.getElementById('wednesdaySession').classList.add('active-session');
+        } else if (dayOfWeek === 6) { // 周六
+            document.getElementById('saturdaySession').classList.add('active-session');
+        }
+    }
+}
+
+// 显示已报名球员列表
+async function displayPlayers() {
+    const playersList = document.getElementById('playersList');
+    if (!playersList) return;
+
+    try {
+        const players = await getPlayers();
+        playersList.innerHTML = '';
+
+        // 显示报名人数统计
+        const totalPlayers = players.length;
+        const statsHtml = `<div class="total-players">当前报名人数 / Aktuelle Anmeldungen: ${totalPlayers}</div>`;
+        playersList.innerHTML = statsHtml;
+
+        // 检查是否是管理员模式
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        // 获取当前登录用户
+        const currentUser = localStorage.getItem('currentUser');
+
+        // 显示每个球员的信息
+        players.forEach(player => {
+            const li = document.createElement('li');
+            // 只有管理员或球员本人才能看到删除按钮
+            const canDelete = isAdmin || (currentUser && currentUser === player.name);
+            li.innerHTML = `
+                <div class="player-info">
+                    <span>${player.name}</span>
+                    <span class="attendance-rate">Level ${player.skillLevel}</span>
+                </div>
+                ${canDelete ? `
+                    <button class="delete-btn ${isAdmin ? 'admin-delete-btn' : ''}" onclick="deletePlayer('${player.id}', '${player.name}', '')">
+                        ${isAdmin ? '管理员删除 / Admin Löschen' : '删除 / Löschen'}
+                    </button>
+                ` : ''}
+            `;
+            playersList.appendChild(li);
+        });
+
+        // 如果是管理员模式，始终显示分组按钮
+        const generateTeamsSelect = document.getElementById('generateTeams');
+        if (generateTeamsSelect) {
+            generateTeamsSelect.style.display = isAdmin || totalPlayers > 0 ? 'block' : 'none';
+        }
+    } catch (error) {
+        console.error('显示球员列表失败:', error);
+    }
+}
+
+// 显示报名历史记录
+async function displayHistory() {
+    if (!window.firebaseFunctions) {
+        console.error('Firebase尚未初始化');
+        return;
+    }
+
+    const historyList = document.querySelector('.history-list');
+    if (!historyList) return;
+
+    try {
+        // 获取所有报名记录
+        const snapshot = await window.firebaseFunctions.get(window.firebaseFunctions.ref(window.database, 'signups'));
+        const historyData = snapshot.val() || {};
+        
+        // 按日期分组
+        const dateGroups = {};
+        Object.entries(historyData).forEach(([date, players]) => {
+            if (!dateGroups[date]) {
+                dateGroups[date] = [];
+            }
+            Object.entries(players).forEach(([playerId, player]) => {
+                dateGroups[date].push({
+                    id: playerId,
+                    ...player
+                });
+            });
+        });
+
+        // 清空历史记录列表
+        historyList.innerHTML = '';
+
+        // 按日期倒序排列
+        const sortedDates = Object.keys(dateGroups).sort((a, b) => new Date(b) - new Date(a));
+
+        // 显示每个日期的报名记录
+        sortedDates.forEach(date => {
+            const players = dateGroups[date];
+            const dateGroup = document.createElement('div');
+            dateGroup.className = 'history-date-group';
+            
+            // 格式化日期
+            const formattedDate = new Date(date).toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                weekday: 'long'
+            });
+            
+            // 创建日期组标题
+            const header = document.createElement('div');
+            header.className = 'history-header';
+            header.innerHTML = `
+                <div class="header-content">
+                    <h3>${formattedDate}</h3>
+                    <span class="player-count">${players.length} 人</span>
+                </div>
+                <span class="toggle-icon">▼</span>
+            `;
+            
+            // 创建球员列表
+            const content = document.createElement('div');
+            content.className = 'history-content';
+            const playersList = document.createElement('ul');
+            playersList.className = 'history-players-list';
+            
+            players.forEach(player => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="player-info">
+                        <span>${player.name}</span>
+                        <span class="attendance-rate">Level ${player.skillLevel}</span>
+                    </div>
+                    <div class="player-details">
+                        <span>${player.position1}</span>
+                        <span>${player.age}岁</span>
+                        <span>${player.experience}年球龄</span>
+                    </div>
+                `;
+                playersList.appendChild(li);
+            });
+            
+            content.appendChild(playersList);
+            dateGroup.appendChild(header);
+            dateGroup.appendChild(content);
+            historyList.appendChild(dateGroup);
+            
+            // 添加点击事件，展开/折叠历史记录
+            header.addEventListener('click', () => {
+                content.classList.toggle('collapsed');
+                header.querySelector('.toggle-icon').textContent = 
+                    content.classList.contains('collapsed') ? '▶' : '▼';
+            });
+        });
+
+        // 更新导出日期选项
+        updateExportDateOptions(sortedDates);
+
+    } catch (error) {
+        console.error('加载历史记录失败:', error);
+        alert('加载历史记录失败，请重试 / Fehler beim Laden der Historie, bitte versuchen Sie es erneut');
+    }
+}
+
+// 更新导出日期选项
+function updateExportDateOptions(dates) {
+    const exportDateSelect = document.getElementById('exportDate');
+    if (!exportDateSelect) return;
+
+    // 清空现有选项
+    exportDateSelect.innerHTML = '<option value="">选择导出日期 / Datum auswählen</option>';
+
+    // 添加日期选项
+    dates.forEach(date => {
+        const option = document.createElement('option');
+        option.value = date;
+        option.textContent = new Date(date).toLocaleDateString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'long'
+        });
+        exportDateSelect.appendChild(option);
+    });
+}
+
+// 导出PDF
+document.getElementById('exportPDF').addEventListener('click', async function() {
+    const selectedDate = document.getElementById('exportDate').value;
+    if (!selectedDate) {
+        alert('请选择要导出的日期 / Bitte wählen Sie ein Datum aus');
+        return;
+    }
+
+    try {
+        const snapshot = await window.firebaseFunctions.get(window.firebaseFunctions.ref(window.database, `signups/${selectedDate}`));
+        const players = [];
+        
+        if (snapshot.exists()) {
+            snapshot.forEach((childSnapshot) => {
+                players.push(childSnapshot.val());
+            });
+        }
+
+        // 创建PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // 设置中文字体
+        doc.addFont('NotoSansSC-Regular', 'NotoSansSC', 'normal');
+        doc.setFont('NotoSansSC');
+
+        // 添加标题
+        const title = `报名记录 - ${new Date(selectedDate).toLocaleDateString('zh-CN')}`;
+        doc.setFontSize(16);
+        doc.text(title, 14, 20);
+
+        // 添加表格数据
+        const tableData = players.map(player => [
+            player.name,
+            player.skillLevel,
+            player.age,
+            player.experience,
+            player.position1
+        ]);
+
+        // 创建表格
+        doc.autoTable({
+            head: [['姓名', '技术等级', '年龄', '球龄', '位置']],
+            body: tableData,
+            startY: 30,
+            theme: 'grid',
+            styles: {
+                font: 'NotoSansSC',
+                fontSize: 10
+            },
+            headStyles: {
+                fillColor: [76, 175, 80],
+                textColor: 255
             }
         });
+
+        // 保存PDF
+        doc.save(`报名记录_${selectedDate}.pdf`);
+
+    } catch (error) {
+        console.error('导出PDF失败:', error);
+        alert('导出失败，请重试 / Export fehlgeschlagen, bitte versuchen Sie es erneut');
     }
 });
 
-// 添加显示分组结果的函数
-function displayGroups(groups) {
-    const groupsContainer = document.getElementById('groupsContainer');
-    if (!groupsContainer) return;
-
-    let html = '<h3>本次分组结果 / Gruppeneinteilung</h3>';
-    
-    for (const [teamName, players] of Object.entries(groups)) {
-        html += `
-            <div class="team-group">
-                <h4>${teamName} (${players.length}人)</h4>
-                <ul>
-                    ${players.map(player => `
-                        <li>
-                            ${player.name} 
-                            <span class="player-level">[${player.skillLevel}]</span>
-                            <span class="player-position">${player.position1}</span>
-                        </li>
-                    `).join('')}
-                </ul>
-            </div>
-        `;
+// 获取所有历史报名信息
+async function getAllSignups() {
+    if (!window.firebaseFunctions) {
+        console.error('Firebase尚未初始化');
+        return [];
     }
 
-    groupsContainer.innerHTML = html;
-}
-
-// 添加管理员登录功能
-function checkAdmin() {
-    const password = prompt('请输入管理员密码 / Bitte geben Sie das Admin-Passwort ein:');
-    if (password === 'admin123') { // 这里设置管理员密码
-        localStorage.setItem('isAdmin', 'true');
-        alert('管理员模式已启用 / Admin-Modus aktiviert');
-        location.reload();
-    } else {
-        localStorage.setItem('isAdmin', 'false');
-        alert('密码错误 / Falsches Passwort');
+    try {
+        // 获取当前报名数据
+        const signupsRef = window.firebaseFunctions.ref(window.database, 'signups');
+        const signupsSnapshot = await window.firebaseFunctions.get(signupsRef);
+        
+        const allSignups = [];
+        
+        // 处理当前报名
+        if (signupsSnapshot.exists()) {
+            signupsSnapshot.forEach((dateSnapshot) => {
+                const date = dateSnapshot.key;
+                if (date && typeof date === 'string') {  // 确保日期键值有效
+                    dateSnapshot.forEach((playerSnapshot) => {
+                        const playerData = playerSnapshot.val();
+                        if (playerData && typeof playerData === 'object') {
+                            // 清理数据中的特殊字符
+                            const cleanPlayerData = Object.entries(playerData).reduce((acc, [key, value]) => {
+                                acc[key] = typeof value === 'string' ? value.replace(/[^\w\s-]/g, '') : value;
+                                return acc;
+                            }, {});
+                            
+                            allSignups.push({
+                                date: date,
+                                id: playerSnapshot.key,
+                                ...cleanPlayerData
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        
+        console.log('获取到的记录数:', allSignups.length);
+        return allSignups;
+    } catch (error) {
+        console.error('获取历史报名信息失败:', error);
+        throw error;
     }
 }
 
-// 等待 DOM 加载完成后再添加事件监听器
+// 显示所有历史报名信息
+async function displayAllHistory() {
+    try {
+        const allSignups = await getAllSignups();
+        const historyContainer = document.getElementById('historyContainer');
+        if (!historyContainer) return;
+
+        // 按日期排序
+        allSignups.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // 按日期分组
+        const groupedSignups = allSignups.reduce((groups, signup) => {
+            const date = signup.date;
+            if (!groups[date]) {
+                groups[date] = [];
+            }
+            groups[date].push(signup);
+            return groups;
+        }, {});
+
+        let html = '<h2>所有历史报名记录 / Alle Anmeldungen</h2>';
+        
+        // 显示每个日期的报名信息
+        Object.entries(groupedSignups).forEach(([date, players]) => {
+            const formattedDate = new Date(date).toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            });
+            
+            html += `
+                <div class="history-date-group">
+                    <div class="history-header">
+                        <h3>${formattedDate} (${players.length}人)</h3>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="history-content">
+                        <table class="history-players">
+                            <thead>
+                                <tr>
+                                    <th>姓名 / Name</th>
+                                    <th>年龄 / Alter</th>
+                                    <th>球龄 / Erfahrung</th>
+                                    <th>技术等级 / Level</th>
+                                    <th>惯用脚 / Bevorzugter Fuß</th>
+                                    <th>位置选择 / Position</th>
+                                    <th>报名时间 / Anmeldezeit</th>
+                                    <th>操作 / Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${players.map(player => `
+                                    <tr>
+                                        <td>${player.name}</td>
+                                        <td>${player.age}</td>
+                                        <td>${player.experience}年</td>
+                                        <td>${player.skillLevel}</td>
+                                        <td>${player.preferredFoot}</td>
+                                        <td>${player.position1}, ${player.position2}, ${player.position3}</td>
+                                        <td>${new Date(player.signUpTime).toLocaleString('zh-CN')}</td>
+                                        <td>
+                                            <button class="delete-btn" onclick="deletePlayer('${player.id}', '${player.name}', '${date}')">
+                                                删除 / Löschen
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        });
+
+        historyContainer.innerHTML = html;
+
+        // 添加展开/折叠功能
+        document.querySelectorAll('.history-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const content = header.nextElementSibling;
+                const icon = header.querySelector('.toggle-icon');
+                content.classList.toggle('collapsed');
+                icon.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
+            });
+        });
+
+    } catch (error) {
+        console.error('显示历史记录失败:', error);
+        alert('获取历史记录失败，请重试 / Fehler beim Laden der Historie, bitte versuchen Sie es erneut');
+    }
+}
+
+// 保存球员信息到本地存储
+function savePlayerData(playerData) {
+    const playerName = playerData.name;
+    if (playerName) {
+        // 只保存基本信息，不包含训练日期和报名时间
+        const dataToSave = {
+            name: playerData.name,
+            age: playerData.age,
+            experience: playerData.experience,
+            skillLevel: playerData.skillLevel,
+            preferredFoot: playerData.preferredFoot,
+            position1: playerData.position1,
+            position2: playerData.position2,
+            position3: playerData.position3
+        };
+        localStorage.setItem(`player_${playerName}`, JSON.stringify(dataToSave));
+    }
+}
+
+// 从本地存储加载球员信息
+function loadPlayerData(playerName) {
+    if (!playerName) return null;
+    const savedData = localStorage.getItem(`player_${playerName}`);
+    if (savedData) {
+        try {
+            return JSON.parse(savedData);
+        } catch (error) {
+            console.error('解析本地存储数据失败:', error);
+            return null;
+        }
+    }
+    return null;
+}
+
+// 页面加载时初始化
+// 修改 DOMContentLoaded 事件监听器的位置和内容
 document.addEventListener('DOMContentLoaded', function() {
-    const adminLoginBtn = document.getElementById('adminLogin');
-    if (adminLoginBtn) {
-        adminLoginBtn.addEventListener('click', checkAdmin);
+// 初始化 Firebase
+if (!window.firebaseFunctions) {
+    console.error('等待 Firebase 初始化...');
+    setTimeout(() => {
+        initializeApp();
+    }, 1000);
+} else {
+    initializeApp();
+}
+});
+
+// 添加初始化函数
+function initializeApp() {
+// 初始化所有功能
+updateTrainingDates();
+displayPlayers();
+displayHistory();
+displayAllHistory();
+
+// 添加事件监听器
+const adminLoginBtn = document.getElementById('adminLogin');
+if (adminLoginBtn) {
+    adminLoginBtn.addEventListener('click', checkAdmin);
+}
+
+const playerNameInput = document.getElementById('playerName');
+if (playerNameInput) {
+    playerNameInput.addEventListener('input', handlePlayerNameInput);
+}
+
+const exportPDFBtn = document.getElementById('exportPDF');
+if (exportPDFBtn) {
+    exportPDFBtn.addEventListener('click', exportToPDF);
+}
+
+const playerForm = document.getElementById('playerForm');
+if (playerForm) {
+    playerForm.addEventListener('submit', handleFormSubmit);
+}
+}
+
+// 处理球员姓名输入
+function handlePlayerNameInput() {
+    const playerName = this.value.trim();
+    if (playerName) {
+        const savedData = loadPlayerData(playerName);
+        if (savedData) {
+            // 自动填充表单
+            document.getElementById('age').value = savedData.age || '';
+            document.getElementById('experience').value = savedData.experience || '';
+            document.getElementById('skillLevel').value = savedData.skillLevel || '';
+            document.getElementById('preferredFoot').value = savedData.preferredFoot || '';
+            document.getElementById('position1').value = savedData.position1 || '';
+            document.getElementById('position2').value = savedData.position2 || '';
+            document.getElementById('position3').value = savedData.position3 || '';
+        }
+    }
+}
+document.getElementById('playerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const playerData = {
+        name: document.getElementById('playerName').value.trim(),  // 确保去除空格
+        age: document.getElementById('age').value,
+        experience: document.getElementById('experience').value,
+        skillLevel: document.getElementById('skillLevel').value,
+        preferredFoot: document.getElementById('preferredFoot').value,
+        position1: document.getElementById('position1').value,
+        position2: document.getElementById('position2').value,
+        position3: document.getElementById('position3').value,
+        trainingDate: document.getElementById('trainingDate').value,
+        signUpTime: new Date().toISOString()
+    };
+    
+    try {
+        // 验证必填字段
+        if (!playerData.name || !playerData.trainingDate) {
+            alert('请填写姓名和选择训练日期 / Bitte geben Sie Ihren Namen ein und wählen Sie ein Trainingsdatum');
+            return;
+        }
+
+        // 检查是否重复报名
+        const existingSignups = await window.firebaseFunctions.get(
+            window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`)
+        );
+        
+        let isAlreadyRegistered = false;
+        if (existingSignups.exists()) {
+            existingSignups.forEach((childSnapshot) => {
+                const existingPlayer = childSnapshot.val();
+                if (existingPlayer.name.trim().toLowerCase() === playerData.name.toLowerCase()) {
+                    isAlreadyRegistered = true;
+                }
+            });
+        }
+        
+        if (isAlreadyRegistered) {
+            alert('您已经报名参加本次训练，不能重复报名 / Sie sind bereits für dieses Training angemeldet');
+            return;
+        }
+
+        // 保存到Firebase
+        const signupsRef = window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`);
+        const newPlayerRef = window.firebaseFunctions.push(signupsRef);
+        await window.firebaseFunctions.set(newPlayerRef, playerData);
+        
+        // 保存球员信息到本地存储
+        if (checkLocalStorage()) {
+            savePlayerData(playerData);
+        }
+        
+        // 更新显示
+        await displayPlayers();
+        await displayHistory();
+        await displayAllHistory();
+        
+        // 清空表单
+        this.reset();
+        
+        // 在报名成功后添加
+        const signUpDate = formatDate(new Date());
+        const groups = await window.autoGroupPlayers(signUpDate);
+        if (groups) {
+            console.log('分组结果:', groups);
+            // 可以在这里添加显示分组结果的代码
+            displayGroups(groups);
+        }
+
+        // 清空表单
+        this.reset();
+        
+        alert('报名成功 / Anmeldung erfolgreich');
+    } catch (error) {
+        console.error('报名失败:', error);
+        alert('报名失败，请重试 / Anmeldung fehlgeschlagen, bitte versuchen Sie es erneut');
     }
 });
+
+// 生成分组
+async function generateTeams() {
+    const groupType = document.getElementById('generateTeams').value;
+    if (!groupType) return;
+
+    try {
+        const players = await getPlayers();
+        
+        // 检查是否是管理员模式
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        
+        // 如果不是管理员且报名人数不足，则提示错误
+        if (!isAdmin && players.length < 8) {
+            alert('报名人数不足，无法进行分组 / Nicht genügend Spieler für die Teamerstellung');
+            return;
+        }
+
+        // 计算每个队伍需要的球员数量
+        const playersPerTeam = parseInt(groupType);
+        const numTeams = Math.floor(players.length / playersPerTeam);
+        const remainingPlayers = players.length % playersPerTeam;
+
+        // 如果是管理员模式且没有报名球员，创建空队伍
+        if (isAdmin && players.length === 0) {
+            const teams = Array(2).fill().map(() => []); // 默认创建2个空队伍
+            displayTeams(teams, [], playersPerTeam);
+            return;
+        }
+
+        // 按评分排序
+        players.sort((a, b) => b.rating - a.rating);
+
+        // 初始化队伍
+        const teams = Array(numTeams).fill().map(() => []);
+        const substitutes = [];
+
+        // 分配球员到队伍
+        for (let i = 0; i < players.length; i++) {
+            const player = players[i];
+            
+            // 如果剩余球员数量不足以组成完整队伍，放入替补席
+            if (i >= numTeams * playersPerTeam) {
+                substitutes.push(player);
+                continue;
+            }
+
+            // 计算应该分配到哪个队伍
+            const teamIndex = i % numTeams;
+            teams[teamIndex].push(player);
+        }
+
+        // 为每个队伍分配位置
+        teams.forEach(team => {
+            // 根据队伍人数确定位置分配
+            const positions = getPositionsForTeamSize(playersPerTeam);
+            
+            // 按评分排序
+            team.sort((a, b) => b.rating - a.rating);
+            
+            // 分配位置
+            team.forEach((player, index) => {
+                if (index < positions.length) {
+                    player.assignedPosition = positions[index];
+                }
+            });
+        });
+
+        // 显示分组结果
+        displayTeams(teams, substitutes, playersPerTeam);
+
+    } catch (error) {
+        console.error('分组失败:', error);
+        alert('分组失败，请重试 / Teamerstellung fehlgeschlagen, bitte versuchen Sie es erneut');
+    }
+}
+
+// 根据队伍人数获取位置配置
+function getPositionsForTeamSize(teamSize) {
+    switch(teamSize) {
+        case 5:
+            return ['striker', 'winger', 'pivot', 'defender', 'goalkeeper'];
+        case 6:
+            return ['striker6', 'winger6', 'midfielder6', 'defender6', 'sweeper6', 'goalkeeper6'];
+        case 7:
+            return ['striker6', 'winger6', 'midfielder6', 'midfielder6', 'defender6', 'sweeper6', 'goalkeeper6'];
+        case 8:
+            return ['striker6', 'winger6', 'winger6', 'midfielder6', 'midfielder6', 'defender6', 'sweeper6', 'goalkeeper6'];
+        default:
+            return [];
+    }
+}
+
+// 更新训练日期选项
+function updateTrainingDates() {
+    const trainingDateSelect = document.getElementById('trainingDate');
+    if (!trainingDateSelect) return;
+
+    // 清空现有选项
+    trainingDateSelect.innerHTML = '<option value="">选择训练日期 / Trainingsdatum</option>';
+
+    // 获取当前日期
+    const today = new Date();
+    
+    // 存储所有训练日期
+    const trainingDates = [];
+    
+    // 生成从今天开始到2025年底的所有训练日期
+    const endDate = new Date('2025-12-31');
+    
+    for (let date = new Date(today); date <= endDate; date.setDate(date.getDate() + 1)) {
+        // 只添加周三和周六的日期
+        if (date.getDay() === 3 || date.getDay() === 6) {
+            trainingDates.push(new Date(date));
+        }
+    }
+    
+    // 只显示最近的6次训练日期
+    const recentDates = trainingDates.slice(0, 6);
+    
+    // 添加日期选项
+    recentDates.forEach(date => {
+        const option = document.createElement('option');
+        const dateStr = date.toISOString().split('T')[0];
+        const formattedDate = date.toLocaleDateString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'long'
+        });
+        option.value = dateStr;
+        option.textContent = `${formattedDate} / ${date.toLocaleDateString('de-DE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'long'
+        })}`;
+        trainingDateSelect.appendChild(option);
+    });
+
+    // 添加日期选择事件监听器
+    trainingDateSelect.addEventListener('change', function() {
+        highlightTrainingSession(this.value);
+    });
+
+    // 自动选择最近的训练日期
+    if (recentDates.length > 0) {
+        const nearestDate = recentDates[0];
+        const dateStr = nearestDate.toISOString().split('T')[0];
+        trainingDateSelect.value = dateStr;
+        highlightTrainingSession(dateStr);
+    }
+}
+
+// 高亮显示训练时间
+function highlightTrainingSession(dateStr) {
+    // 移除所有高亮
+    document.getElementById('wednesdaySession').classList.remove('active-session');
+    document.getElementById('saturdaySession').classList.remove('active-session');
+
+    if (dateStr) {
+        const selectedDate = new Date(dateStr);
+        const dayOfWeek = selectedDate.getDay();
+
+        // 根据选择的日期高亮对应的训练时间
+        if (dayOfWeek === 3) { // 周三
+            document.getElementById('wednesdaySession').classList.add('active-session');
+        } else if (dayOfWeek === 6) { // 周六
+            document.getElementById('saturdaySession').classList.add('active-session');
+        }
+    }
+}
+
+// 显示已报名球员列表
+async function displayPlayers() {
+    const playersList = document.getElementById('playersList');
+    if (!playersList) return;
+
+    try {
+        const players = await getPlayers();
+        playersList.innerHTML = '';
+
+        // 显示报名人数统计
+        const totalPlayers = players.length;
+        const statsHtml = `<div class="total-players">当前报名人数 / Aktuelle Anmeldungen: ${totalPlayers}</div>`;
+        playersList.innerHTML = statsHtml;
+
+        // 检查是否是管理员模式
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        // 获取当前登录用户
+        const currentUser = localStorage.getItem('currentUser');
+
+        // 显示每个球员的信息
+        players.forEach(player => {
+            const li = document.createElement('li');
+            // 只有管理员或球员本人才能看到删除按钮
+            const canDelete = isAdmin || (currentUser && currentUser === player.name);
+            li.innerHTML = `
+                <div class="player-info">
+                    <span>${player.name}</span>
+                    <span class="attendance-rate">Level ${player.skillLevel}</span>
+                </div>
+                ${canDelete ? `
+                    <button class="delete-btn ${isAdmin ? 'admin-delete-btn' : ''}" onclick="deletePlayer('${player.id}', '${player.name}', '')">
+                        ${isAdmin ? '管理员删除 / Admin Löschen' : '删除 / Löschen'}
+                    </button>
+                ` : ''}
+            `;
+            playersList.appendChild(li);
+        });
+
+        // 如果是管理员模式，始终显示分组按钮
+        const generateTeamsSelect = document.getElementById('generateTeams');
+        if (generateTeamsSelect) {
+            generateTeamsSelect.style.display = isAdmin || totalPlayers > 0 ? 'block' : 'none';
+        }
+    } catch (error) {
+        console.error('显示球员列表失败:', error);
+    }
+}
+
+// 显示报名历史记录
+async function displayHistory() {
+    if (!window.firebaseFunctions) {
+        console.error('Firebase尚未初始化');
+        return;
+    }
+
+    const historyList = document.querySelector('.history-list');
+    if (!historyList) return;
+
+    try {
+        // 获取所有报名记录
+        const snapshot = await window.firebaseFunctions.get(window.firebaseFunctions.ref(window.database, 'signups'));
+        const historyData = snapshot.val() || {};
+        
+        // 按日期分组
+        const dateGroups = {};
+        Object.entries(historyData).forEach(([date, players]) => {
+            if (!dateGroups[date]) {
+                dateGroups[date] = [];
+            }
+            Object.entries(players).forEach(([playerId, player]) => {
+                dateGroups[date].push({
+                    id: playerId,
+                    ...player
+                });
+            });
+        });
+
+        // 清空历史记录列表
+        historyList.innerHTML = '';
+
+        // 按日期倒序排列
+        const sortedDates = Object.keys(dateGroups).sort((a, b) => new Date(b) - new Date(a));
+
+        // 显示每个日期的报名记录
+        sortedDates.forEach(date => {
+            const players = dateGroups[date];
+            const dateGroup = document.createElement('div');
+            dateGroup.className = 'history-date-group';
+            
+            // 格式化日期
+            const formattedDate = new Date(date).toLocaleDateString('
 
