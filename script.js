@@ -549,33 +549,21 @@ document.getElementById('exportPDF').addEventListener('click', async function() 
 });
 
 // 获取所有历史报名信息
-// 修改数据库初始化检查
 async function getAllSignups() {
-    // 等待数据库连接
-    let retries = 0;
-    while (!window.database && retries < 5) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        retries++;
-    }
-
-    if (!window.database || !window.firebaseFunctions) {
-        console.error('Firebase数据库未连接');
+    if (!window.firebaseFunctions) {
+        console.error('Firebase尚未初始化');
         return [];
     }
 
     try {
-        // 检查数据库连接状态
-        const connectedRef = window.firebaseFunctions.ref(window.database, '.info/connected');
-        const connected = await window.firebaseFunctions.get(connectedRef);
-        
-        if (!connected.val()) {
-            throw new Error('数据库连接已断开');
-        }
+        // 获取数据库引用
+        const signupsRef = window.firebaseFunctions.ref(window.database, 'signups');
+        const historyRef = window.firebaseFunctions.ref(window.database, 'signUpHistory');
 
-        // 原有的获取数据逻辑
+        // 获取数据快照
         const [signupsSnapshot, historySnapshot] = await Promise.all([
-            window.firebaseFunctions.get(window.firebaseFunctions.ref(window.database, 'signups')),
-            window.firebaseFunctions.get(window.firebaseFunctions.ref(window.database, 'signUpHistory'))
+            window.firebaseFunctions.get(signupsRef),
+            window.firebaseFunctions.get(historyRef)
         ]);
 
         const allSignups = [];
@@ -586,11 +574,14 @@ async function getAllSignups() {
                 const date = dateSnapshot.key;
                 dateSnapshot.forEach((playerSnapshot) => {
                     const playerData = playerSnapshot.val();
-                    allSignups.push({
-                        date: date,
-                        id: playerSnapshot.key,
-                        ...playerData
-                    });
+                    // 确保数据格式正确
+                    if (playerData && typeof playerData === 'object') {
+                        allSignups.push({
+                            date: date,
+                            id: playerSnapshot.key,
+                            ...playerData
+                        });
+                    }
                 });
             });
         }
@@ -601,11 +592,14 @@ async function getAllSignups() {
                 const date = dateSnapshot.key;
                 dateSnapshot.forEach((playerSnapshot) => {
                     const playerData = playerSnapshot.val();
-                    allSignups.push({
-                        date: date,
-                        id: playerSnapshot.key,
-                        ...playerData
-                    });
+                    // 确保数据格式正确
+                    if (playerData && typeof playerData === 'object') {
+                        allSignups.push({
+                            date: date,
+                            id: playerSnapshot.key,
+                            ...playerData
+                        });
+                    }
                 });
             });
         }
