@@ -113,28 +113,26 @@ document.getElementById('playerForm').addEventListener('submit', async function(
         }
 
         // 检查是否重复报名
-        const existingSignups = await window.firebaseFunctions.get(
-            window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`)
-        );
+        const signupsRef = window.firebaseFunctions.ref(window.database, `signups/${playerData.trainingDate}`);
+        const existingSignups = await window.firebaseFunctions.get(signupsRef);
         
+        let isAlreadyRegistered = false;
         if (existingSignups.exists()) {
-            let isAlreadyRegistered = false;
             existingSignups.forEach((childSnapshot) => {
                 const existingPlayer = childSnapshot.val();
-                if (existingPlayer.name === playerData.name) {
+                if (existingPlayer.name.trim().toLowerCase() === playerData.name.trim().toLowerCase()) {
                     isAlreadyRegistered = true;
                 }
             });
-            
-            if (isAlreadyRegistered) {
-                alert('您已经报名参加本次训练 / Sie sind bereits für dieses Training angemeldet');
-                return;
-            }
+        }
+        
+        if (isAlreadyRegistered) {
+            alert('您已经报名参加本次训练，不能重复报名 / Sie sind bereits für dieses Training angemeldet');
+            return;
         }
 
         // 保存到Firebase
-        const trainingDate = playerData.trainingDate;
-        const newPlayerRef = window.firebaseFunctions.push(window.firebaseFunctions.ref(window.database, `signups/${trainingDate}`));
+        const newPlayerRef = window.firebaseFunctions.push(signupsRef);
         await window.firebaseFunctions.set(newPlayerRef, playerData);
         
         // 保存球员信息到本地存储
